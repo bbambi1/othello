@@ -3,6 +3,7 @@ CXXFLAGS = -std=c++17 -Wall -Wextra -O2
 TARGET = othello
 TARGET_GUI = othello_gui
 TARGET_TOURNAMENT = tournament_runner
+TARGET_INTERFACE = tournament_interface
 SRCDIR = src
 INCDIR = include
 
@@ -10,11 +11,13 @@ INCDIR = include
 SOURCES_CONSOLE = src/board.cpp src/ai_agent_base.cpp src/example_ai_agents.cpp src/console_interface.cpp src/main.cpp examples/malicious_agent.cpp
 SOURCES_GUI = src/board.cpp src/ai_agent_base.cpp src/example_ai_agents.cpp src/gui_interface.cpp src/main_gui.cpp examples/malicious_agent.cpp
 SOURCES_TOURNAMENT = src/board.cpp src/ai_agent_base.cpp src/example_ai_agents.cpp src/safe_ai_agent.cpp src/tournament_manager.cpp src/tournament_runner.cpp examples/malicious_agent.cpp
+SOURCES_INTERFACE = src/board.cpp src/ai_agent_base.cpp src/example_ai_agents.cpp src/safe_ai_agent.cpp src/tournament_manager.cpp src/tournament_interface.cpp src/main_tournament.cpp examples/malicious_agent.cpp
 
 # Object files
 OBJECTS_CONSOLE = $(SOURCES_CONSOLE:.cpp=.o)
 OBJECTS_GUI = $(SOURCES_GUI:.cpp=.o)
 OBJECTS_TOURNAMENT = $(SOURCES_TOURNAMENT:.cpp=.o)
+OBJECTS_INTERFACE = $(SOURCES_INTERFACE:.cpp=.o)
 
 # SFML configuration
 SFML_LIBS = -lsfml-graphics -lsfml-window -lsfml-system
@@ -45,6 +48,10 @@ endif
 $(TARGET_TOURNAMENT): $(OBJECTS_TOURNAMENT)
 	$(CXX) $(OBJECTS_TOURNAMENT) -o $(TARGET_TOURNAMENT)
 
+# Interactive tournament interface
+$(TARGET_INTERFACE): $(OBJECTS_INTERFACE)
+	$(CXX) $(OBJECTS_INTERFACE) -o $(TARGET_INTERFACE)
+
 # Compile source files with different flags for GUI
 src/gui_interface.o: src/gui_interface.cpp
 	$(CXX) $(CXXFLAGS) -DUSE_SFML -I$(INCDIR) -c $< -o $@
@@ -58,7 +65,7 @@ src/main_gui.o: src/main_gui.cpp
 
 # Clean build files
 clean:
-	rm -f $(OBJECTS_CONSOLE) $(OBJECTS_GUI) $(OBJECTS_TOURNAMENT) $(TARGET) $(TARGET_GUI) $(TARGET_TOURNAMENT)
+	rm -f $(OBJECTS_CONSOLE) $(OBJECTS_GUI) $(OBJECTS_TOURNAMENT) $(OBJECTS_INTERFACE) $(TARGET) $(TARGET_GUI) $(TARGET_TOURNAMENT) $(TARGET_INTERFACE)
 
 # Install dependencies (Ubuntu/Debian)
 install-deps:
@@ -84,8 +91,12 @@ run-gui: $(TARGET_GUI)
 run-tournament: $(TARGET_TOURNAMENT)
 	./$(TARGET_TOURNAMENT)
 
+# Run interactive tournament interface
+run-interface: $(TARGET_INTERFACE)
+	./$(TARGET_INTERFACE)
+
 # Build all versions
-build-all: $(TARGET) $(TARGET_GUI) $(TARGET_TOURNAMENT)
+build-all: $(TARGET) $(TARGET_GUI) $(TARGET_TOURNAMENT) $(TARGET_INTERFACE)
 
 # Debug build
 debug: CXXFLAGS += -g -DDEBUG
@@ -104,4 +115,4 @@ check-sfml:
 		echo "SFML is not available. Install SFML development libraries."; \
 	fi
 
-.PHONY: all clean install-deps install-sfml run run-gui run-tournament build-all debug debug-gui check-sfml
+.PHONY: all clean install-deps install-sfml run run-gui run-tournament run-interface build-all debug debug-gui check-sfml
