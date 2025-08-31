@@ -1,4 +1,5 @@
 #include "tournament_manager.h"
+#include "safe_ai_agent.h"
 #include <iostream>
 #include <algorithm>
 #include <iomanip>
@@ -207,8 +208,17 @@ GameResult TournamentManager::playGame(AIAgentBase* blackAgent, AIAgentBase* whi
     result.gameLog = "";
     
     // Notify agents of game start
-    blackAgent->onGameStart();
-    whiteAgent->onGameStart();
+    try {
+        blackAgent->onGameStart();
+    } catch (...) {
+        std::cerr << "Warning: Black agent " << blackAgent->getName() << " crashed in onGameStart" << std::endl;
+    }
+    
+    try {
+        whiteAgent->onGameStart();
+    } catch (...) {
+        std::cerr << "Warning: White agent " << whiteAgent->getName() << " crashed in onGameStart" << std::endl;
+    }
     
     CellState currentPlayer = CellState::BLACK;
     AIAgentBase* currentAgent = blackAgent;
@@ -216,13 +226,14 @@ GameResult TournamentManager::playGame(AIAgentBase* blackAgent, AIAgentBase* whi
     while (!board.isGameOver() && board.hasValidMoves(currentPlayer)) {
         result.moveCount++;
         
-        // Get move from current agent
-        auto move = currentAgent->getBestMove(board, currentPlayer);
-        
-        if (move.first >= 0 && move.second >= 0 && 
-            board.isValidMove(move.first, move.second, currentPlayer)) {
+        try {
+            // Get move from current agent
+            auto move = currentAgent->getBestMove(board, currentPlayer);
             
-            // Log the move
+            if (move.first >= 0 && move.second >= 0 && 
+                board.isValidMove(move.first, move.second, currentPlayer)) {
+                
+                // Log the move
             std::string playerName = (currentPlayer == CellState::BLACK) ? "Black" : "White";
             result.gameLog += formatGameLog(board, result.moveCount, playerName, move.first, move.second);
             
@@ -230,34 +241,98 @@ GameResult TournamentManager::playGame(AIAgentBase* blackAgent, AIAgentBase* whi
             board.makeMove(move.first, move.second, currentPlayer);
             
             // Notify agents
-            blackAgent->onMoveMade(move.first, move.second, currentPlayer);
-            whiteAgent->onMoveMade(move.first, move.second, currentPlayer);
+            try {
+                blackAgent->onMoveMade(move.first, move.second, currentPlayer);
+            } catch (...) {
+                std::cerr << "Warning: Black agent crashed in onMoveMade" << std::endl;
+            }
+            
+            try {
+                whiteAgent->onMoveMade(move.first, move.second, currentPlayer);
+            } catch (...) {
+                std::cerr << "Warning: White agent crashed in onMoveMade" << std::endl;
+            }
             
             // Switch players
             currentPlayer = (currentPlayer == CellState::BLACK) ? CellState::WHITE : CellState::BLACK;
             currentAgent = (currentPlayer == CellState::BLACK) ? blackAgent : whiteAgent;
-        } else {
-            // Invalid move - game over
+            } else {
+                // Invalid move - current agent loses
+                std::cerr << "Agent " << currentAgent->getName() << " made invalid move (" 
+                         << move.first << ", " << move.second << ")" << std::endl;
+                break;
+            }
+        } catch (const TimeLimitExceededException& e) {
+            // Agent exceeded time limit - they lose this game
+            std::cerr << "Agent " << currentAgent->getName() << " exceeded time limit - forfeiting game" << std::endl;
+            result.gameLog += "Game forfeited: " + currentAgent->getName() + " exceeded time limit\n";
+            break;
+        } catch (const InvalidMoveException& e) {
+            // Agent played invalid move - they lose this game
+            std::cerr << "Agent " << currentAgent->getName() << " played invalid move (" 
+                     << e.getRow() << ", " << e.getCol() << ") - forfeiting game" << std::endl;
+            result.gameLog += "Game forfeited: " + currentAgent->getName() + " played invalid move\n";
+            break;
+        } catch (const AgentCrashException& e) {
+            // Agent crashed - they lose this game
+            std::cerr << "Agent " << currentAgent->getName() << " crashed - forfeiting game" << std::endl;
+            result.gameLog += "Game forfeited: " + currentAgent->getName() + " crashed\n";
+            break;
+        } catch (const ResourceAccessException& e) {
+            // Agent accessed external resources - they lose this game
+            std::cerr << "Agent " << currentAgent->getName() << " accessed external resources - forfeiting game" << std::endl;
+            result.gameLog += "Game forfeited: " + currentAgent->getName() + " accessed external resources\n";
+            break;
+        } catch (const std::exception& e) {
+            // Any other exception - agent loses this game
+            std::cerr << "Agent " << currentAgent->getName() << " threw exception: " << e.what() << " - forfeiting game" << std::endl;
+            result.gameLog += "Game forfeited: " + currentAgent->getName() + " threw exception: " + e.what() + "\n";
+            break;
+        } catch (...) {
+            // Unknown exception - agent loses this game
+            std::cerr << "Agent " << currentAgent->getName() << " threw unknown exception - forfeiting game" << std::endl;
+            result.gameLog += "Game forfeited: " + currentAgent->getName() + " threw unknown exception\n";
             break;
         }
-    }
     
     // Determine final scores and winner
     result.blackScore = board.getScore(CellState::BLACK);
     result.whiteScore = board.getScore(CellState::WHITE);
     
-    if (result.blackScore > result.whiteScore) {
+    // If the game ended due to an exception, the current player loses
+    if (result.moveCount > 0 && !board.isGameOver() && board.hasValidMoves(currentPlayer)) {
+        // Game was interrupted due to an exception - current player loses
+        if (currentPlayer == CellState::BLACK) {
+            result.winner = result.whiteAgent;
+            result.whiteScore = 64; // Give white all remaining discs
+            result.blackScore = 0;
+        } else {
+            result.winner = result.blackAgent;
+            result.blackScore = 64; // Give black all remaining discs
+            result.whiteScore = 0;
+        }
+    } else if (result.blackScore > result.whiteScore) {
         result.winner = result.blackAgent;
-        blackAgent->onGameEnd(CellState::BLACK);
-        whiteAgent->onGameEnd(CellState::WHITE);
     } else if (result.whiteScore > result.blackScore) {
         result.winner = result.whiteAgent;
-        blackAgent->onGameEnd(CellState::BLACK);
-        whiteAgent->onGameEnd(CellState::WHITE);
     } else {
         result.winner = "Draw";
-        blackAgent->onGameEnd(CellState::EMPTY);
-        whiteAgent->onGameEnd(CellState::EMPTY);
+    }
+    
+    // Notify agents of game end
+    try {
+        if (result.winner == result.blackAgent) {
+            blackAgent->onGameEnd(CellState::BLACK);
+            whiteAgent->onGameEnd(CellState::WHITE);
+        } else if (result.winner == result.whiteAgent) {
+            blackAgent->onGameEnd(CellState::WHITE);
+            whiteAgent->onGameEnd(CellState::BLACK);
+        } else {
+            blackAgent->onGameEnd(CellState::EMPTY);
+            whiteAgent->onGameEnd(CellState::EMPTY);
+        }
+    } catch (...) {
+        std::cerr << "Warning: Agent crashed in onGameEnd" << std::endl;
     }
     
     totalGames++;
@@ -267,6 +342,7 @@ GameResult TournamentManager::playGame(AIAgentBase* blackAgent, AIAgentBase* whi
     }
     
     return result;
+}
 }
 
 GameResult TournamentManager::playGame(const std::string& blackAgentType, const std::string& whiteAgentType) {
@@ -560,10 +636,10 @@ void TournamentManager::printSafetyViolations() const {
             std::cout << "  Crash Violations: " << safeAgent->getCrashViolations() << std::endl;
             std::cout << "  Resource Violations: " << safeAgent->getResourceViolations() << std::endl;
             
-            if (safeAgent->isDisqualified()) {
-                std::cout << "  STATUS: DISQUALIFIED - " << safeAgent->getDisqualificationReason() << std::endl;
+            if (safeAgent->hasViolations()) {
+                std::cout << "  STATUS: HAS VIOLATIONS - " << safeAgent->getViolationSummary() << std::endl;
             } else {
-                std::cout << "  STATUS: ACTIVE" << std::endl;
+                std::cout << "  STATUS: CLEAN" << std::endl;
             }
         } else {
             std::cout << "\nAgent: " << agent->getName() << " (No safety wrapper)" << std::endl;
@@ -571,16 +647,16 @@ void TournamentManager::printSafetyViolations() const {
     }
 }
 
-std::vector<std::string> TournamentManager::getDisqualifiedAgents() const {
-    std::vector<std::string> disqualified;
+std::vector<std::string> TournamentManager::getAgentsWithViolations() const {
+    std::vector<std::string> agentsWithViolations;
     
     for (const auto& agent : agents) {
         if (auto safeAgent = dynamic_cast<const SafeAIAgent*>(agent.get())) {
-            if (safeAgent->isDisqualified()) {
-                disqualified.push_back(safeAgent->getWrappedAgentName());
+            if (safeAgent->hasViolations()) {
+                agentsWithViolations.push_back(safeAgent->getWrappedAgentName());
             }
         }
     }
     
-    return disqualified;
+    return agentsWithViolations;
 }

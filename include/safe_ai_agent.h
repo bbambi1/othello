@@ -83,11 +83,17 @@ public:
     // Reset safety statistics
     void resetSafetyStats();
     
-    // Check if agent has been disqualified
-    bool isDisqualified() const { return disqualified; }
+    // Check if agent has violations in current game
+    bool hasViolations() const { 
+        return timeLimitViolations > 0 || invalidMoveViolations > 0 || 
+               crashViolations > 0 || resourceViolations > 0; 
+    }
     
-    // Get disqualification reason
-    std::string getDisqualificationReason() const { return disqualificationReason; }
+    // Get violation summary for current game
+    std::string getViolationSummary() const;
+    
+    // Check if agent should forfeit current game
+    bool shouldForfeitGame() const;
 
 private:
     std::unique_ptr<AIAgentBase> wrappedAgent;
@@ -99,12 +105,8 @@ private:
     int crashViolations{0};
     int resourceViolations{0};
     
-    // Disqualification state
-    bool disqualified{false};
-    std::string disqualificationReason;
-    
     // Helper methods
-    void disqualifyAgent(const std::string& reason);
+    void recordViolation(const std::string& reason);
     bool checkTimeLimit(std::chrono::steady_clock::time_point startTime);
     bool validateMove(const Board& board, int row, int col, CellState player);
     void monitorResourceAccess();

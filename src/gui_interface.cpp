@@ -176,9 +176,12 @@ void GUIInterface::initializeGame() {
     
     if (currentMode == GUIGameMode::HUMAN_VS_AI || 
         currentMode == GUIGameMode::AI_VS_AI) {
-        aiAgent = std::make_unique<AIAgent>(aiDepth);
-        std::cout << "AI Agent created with depth " << aiDepth << std::endl;
-        std::cout << "AI Agent pointer: " << (aiAgent ? "valid" : "null") << std::endl;
+        aiAgent = createAIAgent("minmax", "MinMax");
+        if (aiAgent) {
+            std::cout << "AI Agent created: " << aiAgent->getName() << std::endl;
+        } else {
+            std::cout << "Failed to create AI Agent" << std::endl;
+        }
     }
     
     if (currentMode == GUIGameMode::TOURNAMENT_MODE) {
@@ -458,7 +461,7 @@ void GUIInterface::resetGame() {
     aiJustMoved = false;
 }
 
-void GUIInterface::addAIAgent(const std::string& name, std::unique_ptr<AIAgent> agent) {
+void GUIInterface::addAIAgent(const std::string& name, std::unique_ptr<AIAgentBase> agent) {
     tournamentAgents.push_back({name, std::move(agent), 0, 0, 0});
 }
 
@@ -480,8 +483,8 @@ void GUIInterface::runTournament(int rounds) {
                 CellState currentPlayer = CellState::BLACK;
                 
                 while (!gameBoard.isGameOver() && gameBoard.hasValidMoves(currentPlayer)) {
-                    AIAgent* currentAgent = (currentPlayer == CellState::BLACK) ? 
-                        tournamentAgents[i].agent.get() : tournamentAgents[j].agent.get();
+                                    AIAgentBase* currentAgent = (currentPlayer == CellState::BLACK) ? 
+                    tournamentAgents[i].agent.get() : tournamentAgents[j].agent.get();
                     
                     auto move = currentAgent->getBestMove(gameBoard, currentPlayer);
                     if (gameBoard.isValidMove(move.first, move.second, currentPlayer)) {

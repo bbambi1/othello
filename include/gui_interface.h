@@ -1,7 +1,7 @@
 #pragma once
 
 #include "board.h"
-#include "ai_agent.h"
+#include "ai_agent_base.h"
 #include <SFML/Graphics.hpp>
 #include <memory>
 #include <string>
@@ -49,7 +49,7 @@ public:
     void resetGame();
     
     // AI tournament functions
-    void addAIAgent(const std::string& name, std::unique_ptr<AIAgent> agent);
+    void addAIAgent(const std::string& name, std::unique_ptr<AIAgentBase> agent);
     void runAITournament(int rounds);
     
 private:
@@ -59,7 +59,7 @@ private:
     
     // Game objects
     Board board;
-    std::unique_ptr<AIAgent> aiAgent;
+    std::unique_ptr<AIAgentBase> aiAgent;
     GUIGameMode currentMode;
     
     // Game state
@@ -94,7 +94,7 @@ private:
     // AI tournament
     struct TournamentAgent {
         std::string name;
-        std::unique_ptr<AIAgent> agent;
+        std::unique_ptr<AIAgentBase> agent;
         int wins;
         int losses;
         int draws;

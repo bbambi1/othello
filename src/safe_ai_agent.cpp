@@ -9,11 +9,6 @@ SafeAIAgent::SafeAIAgent(std::unique_ptr<AIAgentBase> agent, const SafetyConfig&
 }
 
 std::pair<int, int> SafeAIAgent::getBestMove(const Board& board, CellState player) {
-    // Check if already disqualified
-    if (disqualified) {
-        throw AgentCrashException();
-    }
-    
     // Start timing
     moveStartTime = std::chrono::steady_clock::now();
     
@@ -29,14 +24,14 @@ std::pair<int, int> SafeAIAgent::getBestMove(const Board& board, CellState playe
         // Check time limit if enabled
         if (config.enableTimeLimit && !checkTimeLimit(moveStartTime)) {
             timeLimitViolations++;
-            disqualifyAgent("Exceeded time limit");
+            recordViolation("Exceeded time limit");
             throw TimeLimitExceededException();
         }
         
         // Validate move if enabled
         if (config.enableMoveValidation && !validateMove(board, move.first, move.second, player)) {
             invalidMoveViolations++;
-            disqualifyAgent("Played invalid move");
+            recordViolation("Played invalid move");
             throw InvalidMoveException(move.first, move.second);
         }
         
@@ -53,45 +48,48 @@ std::pair<int, int> SafeAIAgent::getBestMove(const Board& board, CellState playe
         
         // Any other exception is treated as a crash
         crashViolations++;
-        disqualifyAgent("Crashed with exception: " + std::string(e.what()));
+        recordViolation("Crashed with exception: " + std::string(e.what()));
         throw AgentCrashException();
     } catch (...) {
         // Unknown exception type
         crashViolations++;
-        disqualifyAgent("Crashed with unknown exception");
+        recordViolation("Crashed with unknown exception");
         throw AgentCrashException();
     }
 }
 
 void SafeAIAgent::onGameStart() {
-    if (!disqualified && wrappedAgent) {
+    // Reset safety statistics at the start of each game
+    resetSafetyStats();
+    
+    if (wrappedAgent) {
         try {
             wrappedAgent->onGameStart();
         } catch (...) {
             crashViolations++;
-            disqualifyAgent("Crashed in onGameStart");
+            recordViolation("Crashed in onGameStart");
         }
     }
 }
 
 void SafeAIAgent::onMoveMade(int row, int col, CellState player) {
-    if (!disqualified && wrappedAgent) {
+    if (wrappedAgent) {
         try {
             wrappedAgent->onMoveMade(row, col, player);
         } catch (...) {
             crashViolations++;
-            disqualifyAgent("Crashed in onMoveMade");
+            recordViolation("Crashed in onMoveMade");
         }
     }
 }
 
 void SafeAIAgent::onGameEnd(CellState winner) {
-    if (!disqualified && wrappedAgent) {
+    if (wrappedAgent) {
         try {
             wrappedAgent->onGameEnd(winner);
         } catch (...) {
             crashViolations++;
-            disqualifyAgent("Crashed in onGameEnd");
+            recordViolation("Crashed in onGameEnd");
         }
     }
 }
@@ -109,14 +107,35 @@ void SafeAIAgent::resetSafetyStats() {
     invalidMoveViolations = 0;
     crashViolations = 0;
     resourceViolations = 0;
-    disqualified = false;
-    disqualificationReason.clear();
 }
 
-void SafeAIAgent::disqualifyAgent(const std::string& reason) {
-    disqualified = true;
-    disqualificationReason = reason;
-    std::cerr << "Agent " << getName() << " disqualified: " << reason << std::endl;
+void SafeAIAgent::recordViolation(const std::string& reason) {
+    std::cerr << "Agent " << getName() << " violation: " << reason << std::endl;
+}
+
+std::string SafeAIAgent::getViolationSummary() const {
+    std::string summary;
+    if (timeLimitViolations > 0) {
+        summary += "Time limit violations: " + std::to_string(timeLimitViolations) + "; ";
+    }
+    if (invalidMoveViolations > 0) {
+        summary += "Invalid moves: " + std::to_string(invalidMoveViolations) + "; ";
+    }
+    if (crashViolations > 0) {
+        summary += "Crashes: " + std::to_string(crashViolations) + "; ";
+    }
+    if (resourceViolations > 0) {
+        summary += "Resource violations: " + std::to_string(resourceViolations) + "; ";
+    }
+    if (summary.empty()) {
+        summary = "No violations";
+    }
+    return summary;
+}
+
+bool SafeAIAgent::shouldForfeitGame() const {
+    // Agent should forfeit if it has any violations
+    return hasViolations();
 }
 
 bool SafeAIAgent::checkTimeLimit(std::chrono::steady_clock::time_point startTime) {

@@ -12,7 +12,7 @@ ConsoleInterface::ConsoleInterface()
       gameRunning(false),
       aiDepth(6),
       aiMoveDelay(1000) {
-    aiAgent = std::make_unique<AIAgent>(aiDepth);
+    aiAgent = createAIAgent("minmax", "MinMax");
 }
 
 void ConsoleInterface::run() {
@@ -61,7 +61,7 @@ void ConsoleInterface::selectGameMode() {
         if (aiDepth < 1 || aiDepth > 10) {
             aiDepth = 6;
         }
-        aiAgent->setMaxDepth(aiDepth);
+        // Note: Depth is now set when creating the agent, not dynamically
         
         if (currentMode == GameMode::AI_VS_AI) {
             std::cout << "Enter delay between moves in milliseconds (0-5000, default 1000): ";

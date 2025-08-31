@@ -63,7 +63,7 @@ public:
     
     // Safety statistics
     void printSafetyViolations() const;
-    std::vector<std::string> getDisqualifiedAgents() const;
+    std::vector<std::string> getAgentsWithViolations() const;
     
     // Individual game management
     GameResult playGame(AIAgentBase* blackAgent, AIAgentBase* whiteAgent);

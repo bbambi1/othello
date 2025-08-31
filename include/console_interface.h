@@ -1,7 +1,7 @@
 #pragma once
 
 #include "board.h"
-#include "ai_agent.h"
+#include "ai_agent_base.h"
 #include <memory>
 
 enum class GameMode {
@@ -42,7 +42,7 @@ public:
     
 private:
     Board board;
-    std::unique_ptr<AIAgent> aiAgent;
+    std::unique_ptr<AIAgentBase> aiAgent;
     GameMode currentMode;
     
     // Game state
