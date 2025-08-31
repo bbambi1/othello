@@ -24,16 +24,8 @@ public:
     const std::string& getName() const { return name; }
     void setName(const std::string& newName) { name = newName; }
     
-    // Statistics tracking
-    void resetStats();
-    int getGamesPlayed() const { return gamesPlayed; }
-    int getGamesWon() const { return gamesWon; }
-    double getWinRate() const;
-    
 protected:
     std::string name;
-    int gamesPlayed;
-    int gamesWon;
     
     // Helper methods that derived classes can use
     std::vector<std::pair<int, int>> getValidMoves(const Board& board, CellState player) const;

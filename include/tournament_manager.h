@@ -61,6 +61,9 @@ public:
     void saveResults(const std::string& filename) const;
     void saveGameLogs(const std::string& filename) const;
     
+    // Individual agent statistics (authoritative source)
+    TournamentResult getAgentStats(const std::string& agentName) const;
+    
     // Safety statistics
     void printSafetyViolations() const;
     std::vector<std::string> getAgentsWithViolations() const;

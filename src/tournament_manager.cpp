@@ -294,6 +294,7 @@ GameResult TournamentManager::playGame(AIAgentBase* blackAgent, AIAgentBase* whi
             result.gameLog += "Game forfeited: " + currentAgent->getName() + " threw unknown exception\n";
             break;
         }
+    } // End of while loop
     
     // Determine final scores and winner
     result.blackScore = board.getScore(CellState::BLACK);
@@ -343,7 +344,6 @@ GameResult TournamentManager::playGame(AIAgentBase* blackAgent, AIAgentBase* whi
     
     return result;
 }
-}
 
 GameResult TournamentManager::playGame(const std::string& blackAgentType, const std::string& whiteAgentType) {
     AIAgentBase* blackAgent = nullptr;
@@ -364,6 +364,51 @@ GameResult TournamentManager::playGame(const std::string& blackAgentType, const 
     }
     
     return playGame(blackAgent, whiteAgent);
+}
+
+// Individual agent statistics (authoritative source)
+TournamentResult TournamentManager::getAgentStats(const std::string& agentName) const {
+    // This method provides the ONLY authoritative source for agent statistics
+    // All statistics are calculated from the tournament manager's game records
+    
+    TournamentResult result;
+    result.agentName = agentName;
+    result.gamesPlayed = 0;
+    result.wins = 0;
+    result.losses = 0;
+    result.draws = 0;
+    result.totalScore = 0;
+    result.averageScore = 0.0;
+    
+    // Calculate statistics from actual game results
+    for (const auto& game : gameResults) {
+        if (game.blackAgent == agentName) {
+            result.gamesPlayed++;
+            if (game.winner == game.blackAgent) {
+                result.wins++;
+            } else if (game.winner == game.whiteAgent) {
+                result.losses++;
+            } else {
+                result.draws++;
+            }
+            result.totalScore += game.blackScore;
+        } else if (game.whiteAgent == agentName) {
+            result.gamesPlayed++;
+            if (game.winner == game.whiteAgent) {
+                result.wins++;
+            } else if (game.winner == game.blackAgent) {
+                result.losses++;
+            } else {
+                result.draws++;
+            }
+            result.totalScore += game.whiteScore;
+        }
+    }
+    
+    result.winRate = (result.gamesPlayed > 0) ? static_cast<double>(result.wins) / result.gamesPlayed : 0.0;
+    result.averageScore = (result.gamesPlayed > 0) ? static_cast<double>(result.totalScore) / result.gamesPlayed : 0.0;
+    
+    return result;
 }
 
 std::vector<TournamentResult> TournamentManager::getResults() const {
@@ -458,9 +503,8 @@ void TournamentManager::resetTournament() {
     tournamentResults.clear();
     totalGames = 0;
     
-    for (auto& agent : agents) {
-        agent->resetStats();
-    }
+    // Note: Agents no longer track their own statistics
+    // Tournament manager is the authoritative source for all game results
 }
 
 double TournamentManager::getAverageGameLength() const {
@@ -475,6 +519,10 @@ double TournamentManager::getAverageGameLength() const {
 }
 
 void TournamentManager::updateTournamentResults() {
+    // AUTHORITATIVE SOURCE: This method calculates all tournament statistics
+    // based on the tournament manager's game records, not on agent self-reporting.
+    // Agents cannot manipulate tournament results by lying about their performance.
+    
     tournamentResults.clear();
     
     for (const auto& agent : agents) {

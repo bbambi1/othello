@@ -8,7 +8,7 @@
 static std::map<std::string, AIAgentCreator> aiAgentRegistry;
 
 AIAgentBase::AIAgentBase(const std::string& agentName) 
-    : name(agentName), gamesPlayed(0), gamesWon(0) {
+    : name(agentName) {
 }
 
 void AIAgentBase::onGameStart() {
@@ -23,20 +23,8 @@ void AIAgentBase::onMoveMade(int row, int col, CellState player) {
 }
 
 void AIAgentBase::onGameEnd(CellState winner) {
-    gamesPlayed++;
-    if (winner != CellState::EMPTY) {
-        gamesWon++;
-    }
-}
-
-void AIAgentBase::resetStats() {
-    gamesPlayed = 0;
-    gamesWon = 0;
-}
-
-double AIAgentBase::getWinRate() const {
-    if (gamesPlayed == 0) return 0.0;
-    return static_cast<double>(gamesWon) / gamesPlayed;
+    // Default implementation does nothing
+    (void)winner; // Suppress unused parameter warning
 }
 
 std::vector<std::pair<int, int>> AIAgentBase::getValidMoves(const Board& board, CellState player) const {
