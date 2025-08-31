@@ -9,8 +9,13 @@
 enum class GUIGameMode {
     HUMAN_VS_HUMAN,
     HUMAN_VS_AI,
-    AI_VS_AI,
-    TOURNAMENT_MODE
+    AI_VS_AI
+};
+
+enum class AIAgentType {
+    RANDOM,
+    GREEDY,
+    MINMAX
 };
 
 class GUIInterface {
@@ -24,11 +29,13 @@ public:
     // Game mode selection
     void selectGameMode();
     
+    // AI agent selection
+    void selectAIAgent();
+    
     // Game modes
     void playHumanVsHuman();
     void playHumanVsAI();
     void playAIVsAI();
-    void runTournament(int rounds = 1);
     
     // Display functions
     void render();
@@ -48,10 +55,6 @@ public:
     void handlePass();
     void resetGame();
     
-    // AI tournament functions
-    void addAIAgent(const std::string& name, std::unique_ptr<AIAgentBase> agent);
-    void runAITournament(int rounds);
-    
 private:
     // SFML components
     sf::RenderWindow window;
@@ -61,6 +64,7 @@ private:
     Board board;
     std::unique_ptr<AIAgentBase> aiAgent;
     GUIGameMode currentMode;
+    AIAgentType selectedAIAgent;
     
     // Game state
     CellState currentPlayer;
@@ -68,9 +72,9 @@ private:
     bool gamePaused;
     
     // AI settings
+    bool aiJustMoved;  // Flag to prevent AI from moving too quickly
     int aiDepth;
     int aiMoveDelay;
-    bool aiJustMoved;  // Flag to prevent AI from moving too quickly
     
     // Visual elements
     sf::RectangleShape boardBackground;
@@ -91,16 +95,6 @@ private:
     sf::Text gameModeText;
     sf::Text instructionText;
     
-    // AI tournament
-    struct TournamentAgent {
-        std::string name;
-        std::unique_ptr<AIAgentBase> agent;
-        int wins;
-        int losses;
-        int draws;
-    };
-    std::vector<TournamentAgent> tournamentAgents;
-    
     // Helper functions
     void initializeSFML();
     void loadFonts();
@@ -112,8 +106,5 @@ private:
     void showGameOver();
     std::string getPlayerName(CellState player) const;
     sf::Color getPlayerColor(CellState player) const;
-    
-    // Tournament functions
-    void displayTournamentResults();
-    void saveTournamentResults(const std::string& filename);
+    std::string getAIAgentTypeString(AIAgentType type) const;
 };

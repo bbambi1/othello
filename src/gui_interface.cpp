@@ -10,9 +10,10 @@ GUIInterface::GUIInterface()
       currentPlayer(CellState::BLACK), 
       gameRunning(false), 
       gamePaused(false),
+      aiJustMoved(false),
       aiDepth(6),
       aiMoveDelay(500),
-      aiJustMoved(false) {
+      selectedAIAgent(AIAgentType::MINMAX) {
     initializeSFML();
     loadFonts();
     setupUI();
@@ -115,8 +116,7 @@ void GUIInterface::selectGameMode() {
         std::vector<std::string> modes = {
             "1. Human vs Human",
             "2. Human vs AI", 
-            "3. AI vs AI",
-            "4. Tournament Mode"
+            "3. AI vs AI"
         };
         
         for (size_t i = 0; i < modes.size(); ++i) {
@@ -132,7 +132,7 @@ void GUIInterface::selectGameMode() {
         // Draw instructions
         sf::Text instructionText;
         instructionText.setFont(font);
-        instructionText.setString("Press 1-4 to select game mode");
+        instructionText.setString("Press 1-3 to select game mode");
         instructionText.setCharacterSize(16);
         instructionText.setFillColor(sf::Color::Yellow);
         instructionText.setPosition(WINDOW_WIDTH / 2 - instructionText.getGlobalBounds().width / 2, 400);
@@ -150,13 +150,70 @@ void GUIInterface::selectGameMode() {
         } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num3)) {
             currentMode = GUIGameMode::AI_VS_AI;
             modeSelected = true;
-        } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num4)) {
-            currentMode = GUIGameMode::TOURNAMENT_MODE;
-            modeSelected = true;
         }
     }
     
     initializeGame();
+}
+
+void GUIInterface::selectAIAgent() {
+    bool agentSelected = false;
+    
+    while (!agentSelected && window.isOpen()) {
+        handleEvents();
+        
+        // Clear window
+        window.clear(sf::Color(50, 50, 50));
+        
+        // Draw title
+        sf::Text titleText;
+        titleText.setFont(font);
+        titleText.setString("Select AI Agent");
+        titleText.setCharacterSize(32);
+        titleText.setFillColor(sf::Color::White);
+        titleText.setPosition(WINDOW_WIDTH / 2 - titleText.getGlobalBounds().width / 2, 100);
+        window.draw(titleText);
+        
+        // Draw agent options
+        std::vector<std::string> agents = {
+            "1. Random AI",
+            "2. Greedy AI", 
+            "3. MinMax AI"
+        };
+        
+        for (size_t i = 0; i < agents.size(); ++i) {
+            sf::Text agentText;
+            agentText.setFont(font);
+            agentText.setString(agents[i]);
+            agentText.setCharacterSize(20);
+            agentText.setFillColor(sf::Color::White);
+            agentText.setPosition(WINDOW_WIDTH / 2 - agentText.getGlobalBounds().width / 2, 200 + i * 40);
+            window.draw(agentText);
+        }
+        
+        // Draw instructions
+        sf::Text instructionText;
+        instructionText.setFont(font);
+        instructionText.setString("Press 1-3 to select AI agent");
+        instructionText.setCharacterSize(16);
+        instructionText.setFillColor(sf::Color::Yellow);
+        instructionText.setPosition(WINDOW_WIDTH / 2 - instructionText.getGlobalBounds().width / 2, 400);
+        window.draw(instructionText);
+        
+        window.display();
+        
+        // Check for key presses
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num1)) {
+            selectedAIAgent = AIAgentType::RANDOM;
+            agentSelected = true;
+        } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num2)) {
+            selectedAIAgent = AIAgentType::GREEDY;
+            agentSelected = true;
+        } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num3)) {
+            selectedAIAgent = AIAgentType::MINMAX;
+            agentSelected = true;
+        }
+    }
 }
 
 void GUIInterface::initializeGame() {
@@ -170,22 +227,25 @@ void GUIInterface::initializeGame() {
         case GUIGameMode::HUMAN_VS_HUMAN: std::cout << "Human vs Human"; break;
         case GUIGameMode::HUMAN_VS_AI: std::cout << "Human vs AI"; break;
         case GUIGameMode::AI_VS_AI: std::cout << "AI vs AI"; break;
-        case GUIGameMode::TOURNAMENT_MODE: std::cout << "Tournament"; break;
+
     }
     std::cout << std::endl;
     
     if (currentMode == GUIGameMode::HUMAN_VS_AI || 
         currentMode == GUIGameMode::AI_VS_AI) {
-        aiAgent = createAIAgent("minmax", "MinMax");
+        selectAIAgent();
+        std::string agentType = "";
+        switch (selectedAIAgent) {
+            case AIAgentType::RANDOM: agentType = "random"; break;
+            case AIAgentType::GREEDY: agentType = "greedy"; break;
+            case AIAgentType::MINMAX: agentType = "minmax"; break;
+        }
+        aiAgent = createAIAgent(agentType, getAIAgentTypeString(selectedAIAgent));
         if (aiAgent) {
             std::cout << "AI Agent created: " << aiAgent->getName() << std::endl;
         } else {
             std::cout << "Failed to create AI Agent" << std::endl;
         }
-    }
-    
-    if (currentMode == GUIGameMode::TOURNAMENT_MODE) {
-        runTournament();
     }
 }
 
@@ -308,7 +368,7 @@ void GUIInterface::renderUI() {
         case GUIGameMode::HUMAN_VS_HUMAN: modeStr = "Mode: Human vs Human"; break;
         case GUIGameMode::HUMAN_VS_AI: modeStr = "Mode: Human vs AI"; break;
         case GUIGameMode::AI_VS_AI: modeStr = "Mode: AI vs AI"; break;
-        case GUIGameMode::TOURNAMENT_MODE: modeStr = "Mode: Tournament"; break;
+
     }
     gameModeText.setString(modeStr);
     window.draw(gameModeText);
@@ -461,80 +521,13 @@ void GUIInterface::resetGame() {
     aiJustMoved = false;
 }
 
-void GUIInterface::addAIAgent(const std::string& name, std::unique_ptr<AIAgentBase> agent) {
-    tournamentAgents.push_back({name, std::move(agent), 0, 0, 0});
-}
 
-void GUIInterface::runTournament(int rounds) {
-    if (tournamentAgents.size() < 2) {
-        std::cout << "Need at least 2 AI agents for tournament" << std::endl;
-        return;
-    }
-    
-    std::cout << "Starting tournament with " << tournamentAgents.size() << " agents, " << rounds << " rounds per matchup" << std::endl;
-    
-    for (size_t i = 0; i < tournamentAgents.size(); ++i) {
-        for (size_t j = i + 1; j < tournamentAgents.size(); ++j) {
-            std::cout << "Match: " << tournamentAgents[i].name << " vs " << tournamentAgents[j].name << std::endl;
-            
-            for (int round = 0; round < rounds; ++round) {
-                Board gameBoard;
-                gameBoard.reset();
-                CellState currentPlayer = CellState::BLACK;
-                
-                while (!gameBoard.isGameOver() && gameBoard.hasValidMoves(currentPlayer)) {
-                                    AIAgentBase* currentAgent = (currentPlayer == CellState::BLACK) ? 
-                    tournamentAgents[i].agent.get() : tournamentAgents[j].agent.get();
-                    
-                    auto move = currentAgent->getBestMove(gameBoard, currentPlayer);
-                    if (gameBoard.isValidMove(move.first, move.second, currentPlayer)) {
-                        gameBoard.makeMove(move.first, move.second, currentPlayer);
-                    }
-                    
-                    currentPlayer = (currentPlayer == CellState::BLACK) ? CellState::WHITE : CellState::BLACK;
-                }
-                
-                // Determine winner
-                int blackScore = gameBoard.getScore(CellState::BLACK);
-                int whiteScore = gameBoard.getScore(CellState::WHITE);
-                
-                if (blackScore > whiteScore) {
-                    tournamentAgents[i].wins++;
-                    tournamentAgents[j].losses++;
-                } else if (whiteScore > blackScore) {
-                    tournamentAgents[j].wins++;
-                    tournamentAgents[i].losses++;
-                } else {
-                    tournamentAgents[i].draws++;
-                    tournamentAgents[j].draws++;
-                }
-            }
-        }
-    }
-    
-    displayTournamentResults();
-    saveTournamentResults("tournament_results.txt");
-}
 
-void GUIInterface::displayTournamentResults() {
-    std::cout << "\n=== TOURNAMENT RESULTS ===" << std::endl;
-    for (const auto& agent : tournamentAgents) {
-        std::cout << agent.name << ": " << agent.wins << "W " << agent.losses << "L " << agent.draws << "D" << std::endl;
-    }
-}
 
-void GUIInterface::saveTournamentResults(const std::string& filename) {
-    std::ofstream file(filename);
-    if (file.is_open()) {
-        file << "Tournament Results\n";
-        file << "==================\n\n";
-        for (const auto& agent : tournamentAgents) {
-            file << agent.name << ": " << agent.wins << "W " << agent.losses << "L " << agent.draws << "D\n";
-        }
-        file.close();
-        std::cout << "Results saved to " << filename << std::endl;
-    }
-}
+
+
+
+
 
 // Game mode implementations
 void GUIInterface::playHumanVsHuman() {
@@ -621,5 +614,14 @@ void GUIInterface::processTurn() {
         }
     } else {
         std::cout << "Not AI's turn - current player: " << getPlayerName(currentPlayer) << std::endl;
+    }
+}
+
+std::string GUIInterface::getAIAgentTypeString(AIAgentType type) const {
+    switch (type) {
+        case AIAgentType::RANDOM: return "Random";
+        case AIAgentType::GREEDY: return "Greedy";
+        case AIAgentType::MINMAX: return "MinMax";
+        default: return "Unknown";
     }
 }

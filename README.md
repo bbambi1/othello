@@ -1,20 +1,20 @@
-# Othello AI Competition Framework
+# Othello Game with AI Agents
 
-A complete, production-ready framework for hosting AI agent competitions in the classic game of Othello/Reversi. Built in modern C++17 with SFML graphics support.
+A complete Othello/Reversi game implementation in modern C++17 with SFML graphics support and three different AI agents.
 
 ## Project Overview
 
-This framework provides everything needed to:
-- **Create AI agents** that compete in Othello
-- **Run tournaments** with multiple formats and scoring
-- **Visualize games** through both console and GUI interfaces
-- **Analyze results** with comprehensive statistics and logging
+This project provides:
+- **Complete Othello game engine** with proper rules and validation
+- **Three AI agents** with different strategies
+- **Modern GUI interface** with AI agent selection
+- **Easy-to-use interface** for both human and AI gameplay
 
 ## Quick Start
 
 ### Prerequisites
 - C++17 compiler (GCC 7+, Clang 5+, MSVC 2017+)
-- SFML development libraries (optional, for GUI)
+- SFML development libraries (required for GUI)
 - Make utility
 
 ### Build & Run
@@ -25,17 +25,11 @@ make check-sfml
 # Install SFML if needed (Ubuntu/Debian)
 make install-sfml
 
-# Build all components
-make build-all
+# Build the game
+make
 
-# Run console version
-./othello
-
-# Run GUI version
+# Run the game
 ./othello_gui
-
-# Run tournament
-./tournament_runner --agents random,minmax --tournament roundrobin --rounds 3
 ```
 
 ## Architecture
@@ -43,26 +37,13 @@ make build-all
 ### Core Components
 - **`Board`**: Complete Othello game engine with rules, validation, and scoring
 - **`AIAgentBase`**: Abstract base class for all AI agents
-- **`TournamentManager`**: Tournament system supporting multiple formats
-- **`ConsoleInterface`**: Terminal-based gameplay interface
-- **`GUIInterface`**: SFML-based graphical interface
+- **`GUIInterface`**: SFML-based graphical interface with AI selection
 
 ### AI Agent Framework
-Participants extend `AIAgentBase` and implement:
-```cpp
-class MyAgent : public AIAgentBase {
-public:
-    std::pair<int, int> getBestMove(const Board& board, CellState player) override;
-    // Optional: onGameStart(), onMoveMade(), onGameEnd()
-};
-
-REGISTER_AI_AGENT(MyAgent, "myagent")
-```
-
-### Tournament Formats
-- **Round Robin**: Every agent plays every other agent
-- **Single Elimination**: Knockout tournament
-- **Swiss System**: Pairing based on similar scores
+The project includes three pre-built AI agents:
+- **Random**: Makes random moves from valid options
+- **Greedy**: Always picks the move that flips the most discs
+- **MinMax**: Uses alpha-beta pruning with strategic evaluation
 
 ## Game Features
 
@@ -72,178 +53,99 @@ REGISTER_AI_AGENT(MyAgent, "myagent")
 - Score calculation and game state management
 - Automatic turn passing when no valid moves
 
-### AI Agent Examples
-- **Random**: Chooses moves randomly
-- **Greedy**: Always picks move that flips most discs
-- **MinMax**: Alpha-beta pruning with configurable depth
-- **Positional**: Focuses on strategic board positions
-- **Hybrid**: Combines multiple evaluation strategies
+### User Interface
+- **Modern GUI**: Visual gameplay with move highlighting and AI agent selection
+- **Responsive Design**: Clean, intuitive interface for all game modes
 
-### User Interfaces
-- **Console**: Fast, headless operation for tournaments
-- **GUI**: Visual gameplay with move highlighting and animations
-- **Tournament Runner**: Command-line tool for competitions
+## How to Play
 
-## Tournament System
+### Getting Started
+1. Run `./othello_gui`
+2. Choose game mode:
+   - **Human vs Human**: Two human players
+   - **Human vs AI**: Human plays against selected AI
+   - **AI vs AI**: Two AI agents play each other
+3. For AI modes, select your preferred AI agent:
+   - **Random AI**: Makes random moves
+   - **Greedy AI**: Always chooses the move that flips the most discs
+   - **MinMax AI**: Uses strategic evaluation with alpha-beta pruning
+4. Click on valid board positions to make moves
+5. The game automatically highlights valid moves and shows current scores
 
-### Features
-- **Multiple Formats**: Round Robin, Single Elimination, Swiss
-- **Statistics Tracking**: Win rates, scores, game counts
-- **Detailed Logging**: Game logs, tournament results, performance metrics
-- **Fair Play**: Time limits, move validation, consistent rules
+## AI Agent Details
 
-### Usage Examples
+### Random AI
+- **Strategy**: Random selection from valid moves
+- **Use case**: Baseline opponent, testing game mechanics
+- **Difficulty**: Very easy
+
+### Greedy AI
+- **Strategy**: Always chooses the move that captures the most opponent discs
+- **Use case**: Intermediate opponent, good for learning basic strategy
+- **Difficulty**: Easy to medium
+
+### MinMax AI
+- **Strategy**: Alpha-beta pruning with configurable search depth
+- **Evaluation**: Considers corner control, edge control, mobility, and disc count
+- **Use case**: Challenging opponent, demonstrates advanced AI techniques
+- **Difficulty**: Medium to hard
+
+## Building from Source
+
+### Dependencies
 ```bash
-# Quick test tournament
-./tournament_runner --agents random,greedy,minmax --tournament roundrobin
+# Ubuntu/Debian
+sudo apt-get install g++ make libsfml-dev
 
-# Swiss system tournament
-./tournament_runner --agents random,greedy,minmax,positional,hybrid --tournament swiss --rounds 5
+# Fedora
+sudo dnf install gcc-c++ make SFML-devel
 
-# Single elimination
-./tournament_runner --agents agent1,agent2,agent3,agent4 --tournament singleelim
+# macOS
+brew install gcc make sfml
 ```
 
-## Development
+### Build Commands
+```bash
+# Clean build
+make clean
 
-### Creating Your AI Agent
-1. **Study Examples**: Review `examples/my_first_ai_agent.cpp`
-2. **Extend Base Class**: Inherit from `AIAgentBase`
-3. **Implement Strategy**: Override `getBestMove()` method
-4. **Register Agent**: Use `REGISTER_AI_AGENT` macro
-5. **Test & Compete**: Use tournament runner to evaluate performance
+# Build the game
+make
 
-### Available Helper Methods
-```cpp
-// Move generation and validation
-auto validMoves = getValidMoves(board, player);
-bool isValid = isValidMove(board, row, col, player);
+# Debug build
+make debug
 
-// Evaluation functions
-double cornerScore = evaluateCornerControl(board, player);
-double edgeScore = evaluateEdgeControl(board, player);
-double mobilityScore = evaluateMobility(board, player);
-
-// Game state
-CellState opponent = getOpponent(player);
-bool timeUp = isTimeUp(startTime, timeLimit);
+# Check SFML availability
+make check-sfml
 ```
-
-### Build System
-- **Makefile**: Separate targets for console, GUI, and tournament
-- **SFML Integration**: Automatic detection and conditional compilation
-- **Debug Support**: Debug builds with additional flags
 
 ## Project Structure
 
 ```
 othello/
-├── include/                     # Header files
-│   ├── board.h                 # Game engine
-│   ├── ai_agent_base.h         # AI framework
-│   ├── tournament_manager.h    # Tournament system
-│   ├── gui_interface.h         # SFML interface
-│   └── console_interface.h     # Terminal interface
-├── src/                        # Implementation files
-├── examples/                   # Example AI agents
-├── Makefile                    # Build configuration
-├── COMPETITION_README.md       # Detailed competition guide
-└── PROJECT_STRUCTURE.md        # Technical architecture
+├── include/           # Header files
+│   ├── board.h       # Game board and rules
+│   ├── ai_agent_base.h  # AI agent interface
+│   ├── example_ai_agents.h  # AI agent implementations
+│   └── gui_interface.h     # GUI interface
+├── src/               # Source files
+│   ├── board.cpp     # Game logic implementation
+│   ├── ai_agent_base.cpp  # AI agent framework
+│   ├── example_ai_agents.cpp  # AI agent implementations
+│   ├── gui_interface.cpp     # GUI implementation
+│   └── main_gui.cpp  # GUI entry point
+├── Makefile          # Build configuration
+└── README.md         # This file
 ```
-
-## Configuration
-
-### Build Options
-```bash
-make                    # Console version only
-make othello_gui        # GUI version (requires SFML)
-make tournament_runner  # Tournament system
-make build-all          # All components
-make debug              # Debug build
-make clean              # Clean build artifacts
-```
-
-### Tournament Settings
-- **Rounds per matchup**: Configurable for round robin
-- **Time limits**: Per-move time constraints
-- **Logging**: Game logs and tournament results
-- **Output files**: Customizable result storage
-
-## Performance
-
-### AI Agent Capabilities
-- **Random**: ~1ms per move
-- **Greedy**: ~1ms per move
-- **MinMax (depth 4)**: ~100ms per move
-- **MinMax (depth 6)**: ~1s per move
-- **MinMax (depth 8+)**: 1-10s per move
-
-### Tournament Performance
-- **Round Robin**: O(n²) complexity for n agents
-- **Single Elimination**: O(n log n) complexity
-- **Swiss System**: O(n × rounds) complexity
-
-## Debugging & Testing
-
-### Debug Tools
-- **Individual Game Testing**: Use debug test program
-- **Tournament Logs**: Detailed game-by-game analysis
-- **Performance Profiling**: Move timing and statistics
-- **Error Handling**: Comprehensive error messages and validation
-
-### Common Issues
-- **Build Errors**: Check SFML installation and C++17 support
-- **Runtime Errors**: Verify agent registration and move validation
-- **Performance Issues**: Adjust search depth and evaluation complexity
-
-## Documentation
-
-### Guides
-- **`COMPETITION_README.md`**: Complete competition framework guide
-- **`PROJECT_STRUCTURE.md`**: Technical architecture and dependencies
-- **`examples/`**: Working AI agent implementations
-- **`build_my_agent.sh`**: Helper script for participants
-
-### Learning Resources
-- Othello strategy guides and opening theory
-- AI algorithms (MinMax, Alpha-Beta pruning)
-- Modern C++ programming practices
-- SFML graphics library documentation
 
 ## Contributing
 
-### Adding Features
-1. **AI Agents**: Extend base class with new strategies
-2. **Tournament Formats**: Implement new competition algorithms
-3. **Evaluation Functions**: Add new board assessment methods
-4. **User Interfaces**: Enhance console or GUI functionality
-
-### Code Quality
-- Modern C++17 practices
-- Comprehensive error handling
-- Performance optimization
-- Cross-platform compatibility
+To add new AI agents:
+1. Extend the `AIAgentBase` class
+2. Implement the `getBestMove` method
+3. Register your agent using `REGISTER_AI_AGENT`
+4. Update the GUI to include your agent in the selection
 
 ## License
 
-MIT License - Open source and free for educational and commercial use.
-
-## Competition Ready
-
-This framework is designed for:
-- **Educational Use**: Learning AI algorithms and game theory
-- **Research**: Testing new AI strategies and evaluation functions
-- **Competitions**: Hosting fair and engaging AI tournaments
-- **Development**: Building and testing AI agents
-
-## Getting Started
-
-1. **Build the project**: `make build-all`
-2. **Try the examples**: Run tournaments with included agents
-3. **Create your agent**: Extend `AIAgentBase` class
-4. **Test your strategy**: Use tournament runner for evaluation
-5. **Compete**: Enter tournaments and analyze results
-
----
-
-**Ready to create the next champion AI agent? Start coding!**
+This project is open source. Feel free to use, modify, and distribute according to your needs.
