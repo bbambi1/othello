@@ -70,6 +70,7 @@ private:
     // AI settings
     int aiDepth;
     int aiMoveDelay;
+    bool aiJustMoved;  // Flag to prevent AI from moving too quickly
     
     // Visual elements
     sf::RectangleShape boardBackground;
