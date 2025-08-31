@@ -27,6 +27,14 @@ void TournamentManager::addAgent(const std::string& type, const std::string& nam
     }
 }
 
+void TournamentManager::addAgentWithSafety(std::unique_ptr<AIAgentBase> agent, const SafetyConfig& config) {
+    if (agent) {
+        // Wrap the agent with safety checks
+        auto safeAgent = std::make_unique<SafeAIAgent>(std::move(agent), config);
+        agents.push_back(std::move(safeAgent));
+    }
+}
+
 void TournamentManager::runRoundRobin(int rounds) {
     if (agents.size() < 2) {
         std::cout << "Need at least 2 agents for a tournament" << std::endl;
@@ -538,4 +546,41 @@ int TournamentManager::calculateSwissScore(int agentIndex) const {
         }
     }
     return score;
+}
+
+void TournamentManager::printSafetyViolations() const {
+    std::cout << "\n=== SAFETY VIOLATIONS REPORT ===" << std::endl;
+    
+    for (const auto& agent : agents) {
+        // Try to cast to SafeAIAgent to access safety statistics
+        if (auto safeAgent = dynamic_cast<const SafeAIAgent*>(agent.get())) {
+            std::cout << "\nAgent: " << safeAgent->getWrappedAgentName() << std::endl;
+            std::cout << "  Time Limit Violations: " << safeAgent->getTimeLimitViolations() << std::endl;
+            std::cout << "  Invalid Move Violations: " << safeAgent->getInvalidMoveViolations() << std::endl;
+            std::cout << "  Crash Violations: " << safeAgent->getCrashViolations() << std::endl;
+            std::cout << "  Resource Violations: " << safeAgent->getResourceViolations() << std::endl;
+            
+            if (safeAgent->isDisqualified()) {
+                std::cout << "  STATUS: DISQUALIFIED - " << safeAgent->getDisqualificationReason() << std::endl;
+            } else {
+                std::cout << "  STATUS: ACTIVE" << std::endl;
+            }
+        } else {
+            std::cout << "\nAgent: " << agent->getName() << " (No safety wrapper)" << std::endl;
+        }
+    }
+}
+
+std::vector<std::string> TournamentManager::getDisqualifiedAgents() const {
+    std::vector<std::string> disqualified;
+    
+    for (const auto& agent : agents) {
+        if (auto safeAgent = dynamic_cast<const SafeAIAgent*>(agent.get())) {
+            if (safeAgent->isDisqualified()) {
+                disqualified.push_back(safeAgent->getWrappedAgentName());
+            }
+        }
+    }
+    
+    return disqualified;
 }

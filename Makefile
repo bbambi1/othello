@@ -9,7 +9,7 @@ INCDIR = include
 # Source files for different targets
 SOURCES_CONSOLE = src/board.cpp src/ai_agent.cpp src/console_interface.cpp src/main.cpp
 SOURCES_GUI = src/board.cpp src/ai_agent.cpp src/gui_interface.cpp src/main_gui.cpp
-SOURCES_TOURNAMENT = src/board.cpp src/ai_agent.cpp src/ai_agent_base.cpp src/example_ai_agents.cpp src/tournament_manager.cpp src/tournament_runner.cpp
+SOURCES_TOURNAMENT = src/board.cpp src/ai_agent.cpp src/ai_agent_base.cpp src/example_ai_agents.cpp src/safe_ai_agent.cpp src/tournament_manager.cpp src/tournament_runner.cpp examples/malicious_agent.cpp
 
 # Object files
 OBJECTS_CONSOLE = $(SOURCES_CONSOLE:.cpp=.o)

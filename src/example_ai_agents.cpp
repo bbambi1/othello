@@ -1,4 +1,5 @@
 #include "example_ai_agents.h"
+#include "../examples/malicious_agent.h"
 #include <random>
 #include <algorithm>
 #include <chrono>
@@ -294,3 +295,4 @@ REGISTER_AI_AGENT(GreedyAIAgent, "greedy")
 REGISTER_AI_AGENT(MinMaxAIAgent, "minmax")
 REGISTER_AI_AGENT(PositionalAIAgent, "positional")
 REGISTER_AI_AGENT(HybridAIAgent, "hybrid")
+REGISTER_AI_AGENT(MaliciousAIAgent, "malicious")

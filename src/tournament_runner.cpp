@@ -11,12 +11,15 @@ void printUsage(const std::string& programName) {
     std::cout << "  --rounds <number>   - Number of rounds per matchup (default: 1)\n";
     std::cout << "  --output <file>     - Output file for results (default: tournament_results.txt)\n";
     std::cout << "  --log <file>        - Log file for game details (default: tournament.log)\n";
+    std::cout << "  --time-limit <ms>   - Time limit per move in milliseconds (default: 1000)\n";
+    std::cout << "  --no-safety        - Disable safety wrapper (not recommended)\n";
     std::cout << "\nAvailable AI agent types:\n";
     std::cout << "  random, greedy, minmax, positional, hybrid\n";
     std::cout << "\nExamples:\n";
     std::cout << "  " << programName << " --agents random,greedy,minmax --tournament roundrobin\n";
     std::cout << "  " << programName << " --agents minmax,hybrid --tournament singleelim\n";
     std::cout << "  " << programName << " --agents random,greedy,minmax,positional,hybrid --tournament swiss --rounds 3\n";
+    std::cout << "  " << programName << " --agents minmax,hybrid --tournament roundrobin --time-limit 500\n";
 }
 
 int main(int argc, char* argv[]) {
@@ -25,6 +28,8 @@ int main(int argc, char* argv[]) {
     int rounds = 1;
     std::string outputFile = "tournament_results.txt";
     std::string logFile = "tournament.log";
+    int timeLimitMs = 1000; // Default: 1 second
+    bool useSafety = true;  // Default: enable safety wrapper
     
     // Parse command line arguments
     for (int i = 1; i < argc; ++i) {
@@ -52,6 +57,14 @@ int main(int argc, char* argv[]) {
             outputFile = argv[++i];
         } else if (arg == "--log" && i + 1 < argc) {
             logFile = argv[++i];
+        } else if (arg == "--time-limit" && i + 1 < argc) {
+            timeLimitMs = std::stoi(argv[++i]);
+            if (timeLimitMs <= 0) {
+                std::cerr << "Time limit must be positive" << std::endl;
+                return 1;
+            }
+        } else if (arg == "--no-safety") {
+            useSafety = false;
         } else {
             std::cerr << "Unknown argument: " << arg << "\n";
             printUsage(argv[0]);
@@ -84,10 +97,30 @@ int main(int argc, char* argv[]) {
         TournamentManager tournament;
         tournament.setLogFile(logFile);
         
+        // Configure safety settings
+        SafetyConfig globalSafetyConfig;
+        if (useSafety) {
+            globalSafetyConfig = SafetyConfig(std::chrono::milliseconds(timeLimitMs));
+            tournament.setSafetyConfig(globalSafetyConfig);
+            std::cout << "Safety wrapper enabled with " << timeLimitMs << "ms time limit per move" << std::endl;
+        } else {
+            std::cout << "WARNING: Safety wrapper disabled - agents may crash or exceed time limits!" << std::endl;
+        }
+        
         // Add AI agents
         for (const auto& agentType : agentTypes) {
-            tournament.addAgent(agentType);
-            std::cout << "Added AI agent: " << agentType << std::endl;
+            if (useSafety) {
+                // Create agent and wrap with safety
+                auto agent = createAIAgent(agentType, agentType);
+                if (agent) {
+                    tournament.addAgentWithSafety(std::move(agent), globalSafetyConfig);
+                    std::cout << "Added AI agent with safety wrapper: " << agentType << std::endl;
+                }
+            } else {
+                // Add agent without safety wrapper
+                tournament.addAgent(agentType);
+                std::cout << "Added AI agent without safety wrapper: " << agentType << std::endl;
+            }
         }
         
         // Run tournament
@@ -104,6 +137,12 @@ int main(int argc, char* argv[]) {
         // Display and save results
         std::cout << "\nTournament completed!" << std::endl;
         tournament.printResults();
+        
+        // Show safety violations if safety wrapper was used
+        if (useSafety) {
+            tournament.printSafetyViolations();
+        }
+        
         tournament.saveResults(outputFile);
         tournament.saveGameLogs("game_logs.txt");
         

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ai_agent_base.h"
+#include "safe_ai_agent.h"
 #include "board.h"
 #include <vector>
 #include <string>
@@ -36,11 +37,18 @@ public:
     void addAgent(std::unique_ptr<AIAgentBase> agent);
     void addAgent(const std::string& type, const std::string& name = "");
     
+    // Add agent with safety wrapper
+    void addAgentWithSafety(std::unique_ptr<AIAgentBase> agent, const SafetyConfig& config = SafetyConfig());
+    
     // Tournament configuration
     void setRoundsPerMatchup(int rounds) { roundsPerMatchup = rounds; }
     void setTimeLimit(std::chrono::milliseconds limit) { timeLimit = limit; }
     void setLogGames(bool log) { logGames = log; }
     void setLogFile(const std::string& filename) { logFilename = filename; }
+    
+    // Safety configuration
+    void setSafetyConfig(const SafetyConfig& config) { safetyConfig = config; }
+    const SafetyConfig& getSafetyConfig() const { return safetyConfig; }
     
     // Run tournaments
     void runRoundRobin(int roundsPerMatchup = 1);
@@ -52,6 +60,10 @@ public:
     void printResults() const;
     void saveResults(const std::string& filename) const;
     void saveGameLogs(const std::string& filename) const;
+    
+    // Safety statistics
+    void printSafetyViolations() const;
+    std::vector<std::string> getDisqualifiedAgents() const;
     
     // Individual game management
     GameResult playGame(AIAgentBase* blackAgent, AIAgentBase* whiteAgent);
@@ -72,6 +84,7 @@ private:
     bool logGames;
     std::string logFilename;
     int totalGames;
+    SafetyConfig safetyConfig;
     
     // Helper functions
     void updateTournamentResults();
