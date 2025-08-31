@@ -51,6 +51,7 @@ tournament_results.txt
 game_logs.txt
 tournament.log
 ai_vs_ai_game.log
+malicious_output.txt
 
 # Debug files
 *.dSYM/
