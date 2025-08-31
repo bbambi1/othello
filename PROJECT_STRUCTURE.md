@@ -2,7 +2,7 @@
 
 This document provides an overview of the project structure and explains how different components work together.
 
-## 📁 Directory Structure
+## Directory Structure
 
 ```
 othello/
@@ -37,7 +37,7 @@ othello/
 └── build_my_agent.sh          # Helper script for participants
 ```
 
-## 🔧 Core Components
+## Core Components
 
 ### 1. Game Engine (`board.h/cpp`)
 - **Purpose**: Implements the complete Othello game rules
@@ -70,7 +70,7 @@ othello/
 - **Console Interface** (`console_interface.h/cpp`): Terminal-based gameplay
 - **GUI Interface** (`gui_interface.h/cpp`): SFML-based graphical interface
 
-## 🚀 How to Use
+## How to Use
 
 ### For Participants (AI Agent Developers)
 
@@ -100,7 +100,7 @@ othello/
    - Configure tournament parameters
    - Analyze results
 
-## 🔗 Component Dependencies
+## Component Dependencies
 
 ```
 ai_agent_base.h ← example_ai_agents.h
@@ -115,7 +115,7 @@ console_interface.h
 gui_interface.h
 ```
 
-## 📝 Key Classes and Their Roles
+## Key Classes and Their Roles
 
 ### `AIAgentBase`
 - **Purpose**: Base class for all AI agents
@@ -137,7 +137,7 @@ gui_interface.h
   - `isValidMove()`, `makeMove()`, `getValidMoves()`
   - `getScore()`, `isGameOver()`, `getFlippedDiscs()`
 
-## 🎯 Extension Points
+## Extension Points
 
 ### Adding New AI Agents
 1. Create new class extending `AIAgentBase`
@@ -156,7 +156,7 @@ gui_interface.h
 2. Implement evaluation logic
 3. Make available to derived classes
 
-## 🐛 Debugging and Development
+## Debugging and Development
 
 ### Common Issues
 - **Build Errors**: Check SFML installation, C++17 support
@@ -169,7 +169,7 @@ gui_interface.h
 - Test agents individually before tournaments
 - Use existing agents as benchmarks
 
-## 📚 Learning Path
+## Learning Path
 
 1. **Start Simple**: Understand the basic game rules
 2. **Study Examples**: Analyze existing AI agents
@@ -177,7 +177,7 @@ gui_interface.h
 4. **Optimize**: Improve evaluation functions and search
 5. **Compete**: Enter tournaments and analyze results
 
-## 🔄 Build Process
+## Build Process
 
 ```bash
 # Check dependencies
@@ -199,7 +199,7 @@ make build-all
 make clean
 ```
 
-## 🌟 Next Steps
+## Next Steps
 
 After understanding this structure:
 
@@ -211,4 +211,4 @@ After understanding this structure:
 
 ---
 
-**Happy coding and good luck in the competition! 🏆**
+**Happy coding and good luck in the competition!**

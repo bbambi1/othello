@@ -32,7 +32,7 @@ if [ -f "src/my_ai_agent.cpp" ] || [ -f "include/my_ai_agent.h" ]; then
     
     if [ $? -eq 0 ]; then
         echo ""
-        echo "✅ Build successful! Your agent has been integrated."
+        echo "Build successful! Your agent has been integrated."
         echo ""
         echo "=== Testing Your Agent ==="
         echo "Running a quick test tournament..."
@@ -49,7 +49,7 @@ if [ -f "src/my_ai_agent.cpp" ] || [ -f "include/my_ai_agent.h" ]; then
         
     else
         echo ""
-        echo "❌ Build failed. Please check the error messages above."
+        echo "Build failed. Please check the error messages above."
         echo "Common issues:"
         echo "- Missing #include statements"
         echo "- Syntax errors in your code"
@@ -81,4 +81,4 @@ echo "make run-gui           - Run GUI version (if SFML available)"
 echo "make run-tournament    - Run tournament runner"
 echo "./tournament_runner --help  - Show tournament options"
 echo ""
-echo "Happy coding! 🚀"
+echo "Happy coding!"
