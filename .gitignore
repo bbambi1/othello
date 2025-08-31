@@ -1,0 +1,118 @@
+# Othello AI Competition Framework - .gitignore
+
+# Build artifacts
+*.o
+*.obj
+*.exe
+*.out
+*.app
+*.dll
+*.so
+*.dylib
+*.a
+*.lib
+
+# Executables
+othello
+othello_gui
+tournament_runner
+debug_test
+
+# Object files
+src/*.o
+src/*.obj
+
+# CMake build directories
+build/
+cmake-build-*/
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile.cmake
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+*.bak
+*.orig
+
+# Tournament output files
+tournament_results.txt
+game_logs.txt
+tournament.log
+ai_vs_ai_game.log
+
+# Debug files
+*.dSYM/
+*.su
+*.idb
+*.pdb
+
+# Coverage and profiling
+*.gcov
+*.gcda
+*.gcno
+*.prof
+
+# Dependencies (if using package managers)
+vcpkg_installed/
+conan/
+deps/
+
+# OS-specific files
+*.exe
+*.msi
+*.dmg
+*.deb
+*.rpm
+*.AppImage
+
+# Backup files
+*.backup
+*.old
+*.save
+
+# User-specific configuration
+config.ini
+settings.json
+user_preferences.txt
+
+# Test output
+test_results/
+coverage/
+*.test
+
+# Documentation build
+docs/_build/
+docs/build/
+
+# Archive files
+*.tar.gz
+*.zip
+*.7z
+*.rar
+
+# Large data files
+*.dat
+*.bin
+*.data
+*.model
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# SFML specific (if building from source)
+sfml/
+sfml-src/
