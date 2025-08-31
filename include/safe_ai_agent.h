@@ -64,7 +64,8 @@ public:
     ~SafeAIAgent() override = default;
     
     // Override the main method with safety checks
-    std::pair<int, int> getBestMove(const Board& board, CellState player) override;
+    std::pair<int, int> getBestMove(const Board& board, CellState player, 
+                                   std::chrono::milliseconds timeLimit = std::chrono::milliseconds(1000)) override;
     
     // Forward other methods to the wrapped agent
     void onGameStart() override;

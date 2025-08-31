@@ -227,8 +227,8 @@ GameResult TournamentManager::playGame(AIAgentBase* blackAgent, AIAgentBase* whi
         result.moveCount++;
         
         try {
-            // Get move from current agent
-            auto move = currentAgent->getBestMove(board, currentPlayer);
+            // Get move from current agent with 1 second time limit
+            auto move = currentAgent->getBestMove(board, currentPlayer, std::chrono::milliseconds(1000));
             
             if (move.first >= 0 && move.second >= 0 && 
                 board.isValidMove(move.first, move.second, currentPlayer)) {

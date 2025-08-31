@@ -762,7 +762,8 @@ void GUIInterface::processTurn() {
         if (currentAIAgent && board.hasValidMoves(currentPlayer)) {
             std::cout << "AI (" << getPlayerName(currentPlayer) << ") thinking..." << std::endl;
             auto start = std::chrono::steady_clock::now();
-            auto move = currentAIAgent->getBestMove(board, currentPlayer);
+            // Set a 1 second time limit for AI moves
+            auto move = currentAIAgent->getBestMove(board, currentPlayer, std::chrono::milliseconds(1000));
             auto end = std::chrono::steady_clock::now();
             
             auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);

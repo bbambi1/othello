@@ -8,7 +8,8 @@ SafeAIAgent::SafeAIAgent(std::unique_ptr<AIAgentBase> agent, const SafetyConfig&
     // Initialize the base class with the wrapped agent's original name
 }
 
-std::pair<int, int> SafeAIAgent::getBestMove(const Board& board, CellState player) {
+std::pair<int, int> SafeAIAgent::getBestMove(const Board& board, CellState player, 
+                                             std::chrono::milliseconds timeLimit) {
     // Start timing
     moveStartTime = std::chrono::steady_clock::now();
     
@@ -18,8 +19,8 @@ std::pair<int, int> SafeAIAgent::getBestMove(const Board& board, CellState playe
             monitorResourceAccess();
         }
         
-        // Get move from wrapped agent
-        auto move = wrappedAgent->getBestMove(board, player);
+        // Get move from wrapped agent with time limit
+        auto move = wrappedAgent->getBestMove(board, player, timeLimit);
         
         // Check time limit if enabled
         if (config.enableTimeLimit && !checkTimeLimit(moveStartTime)) {

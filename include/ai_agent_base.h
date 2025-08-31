@@ -13,7 +13,9 @@ public:
     
     // Main method that participants must implement
     // Returns the best move as (row, col) for the given board state and player
-    virtual std::pair<int, int> getBestMove(const Board& board, CellState player) = 0;
+    // timeLimit: maximum time allowed for the move (default: 1 second)
+    virtual std::pair<int, int> getBestMove(const Board& board, CellState player, 
+                                           std::chrono::milliseconds timeLimit = std::chrono::milliseconds(1000)) = 0;
     
     // Optional methods that can be overridden for additional functionality
     virtual void onGameStart();
@@ -41,7 +43,7 @@ protected:
     
     // Time management
     bool isTimeUp(std::chrono::steady_clock::time_point startTime, 
-                  std::chrono::milliseconds timeLimit) const;
+                  std::chrono::milliseconds timeLimit = std::chrono::milliseconds(1000)) const;
 };
 
 // Function pointer type for AI agent creation (defined after AIAgentBase)
