@@ -69,8 +69,24 @@ The project includes three pre-built AI agents:
    - **Random AI**: Makes random moves
    - **Greedy AI**: Always chooses the move that flips the most discs
    - **MinMax AI**: Uses strategic evaluation with alpha-beta pruning
-4. Click on valid board positions to make moves
-5. The game automatically highlights valid moves and shows current scores
+4. For AI vs AI mode, you'll also select the opponent AI agent
+5. Click on valid board positions to make moves
+6. The game automatically highlights valid moves and shows current scores
+
+## AI Agent Selection
+
+### Human vs AI Mode
+- Choose which AI agent you want to play against
+- The AI will play as White (second player)
+- You'll see which AI agent is being used in the UI
+
+### AI vs AI Mode
+- Select the AI agent for Black (first player)
+- Select the AI agent for White (second player)
+- Watch two different AI strategies compete
+- Perfect for testing and comparing AI performance
+
+### Available AI Agents
 
 ## AI Agent Details
 

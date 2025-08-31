@@ -13,7 +13,8 @@ GUIInterface::GUIInterface()
       aiJustMoved(false),
       aiDepth(6),
       aiMoveDelay(500),
-      selectedAIAgent(AIAgentType::MINMAX) {
+      selectedAIAgent(AIAgentType::MINMAX),
+      selectedOpponentAIAgent(AIAgentType::MINMAX) {
     initializeSFML();
     loadFonts();
     setupUI();
@@ -153,11 +154,27 @@ void GUIInterface::selectGameMode() {
         }
     }
     
+    // For AI modes, select AI agents before initializing the game
+    if (currentMode == GUIGameMode::HUMAN_VS_AI || currentMode == GUIGameMode::AI_VS_AI) {
+        std::cout << "About to select AI agent for mode: " << static_cast<int>(currentMode) << std::endl;
+        selectAIAgent();
+        std::cout << "AI agent selection completed. Selected: " << static_cast<int>(selectedAIAgent) << std::endl;
+        
+        // For AI vs AI mode, also select opponent AI
+        if (currentMode == GUIGameMode::AI_VS_AI) {
+            std::cout << "About to select opponent AI agent" << std::endl;
+            selectOpponentAIAgent();
+            std::cout << "Opponent AI agent selection completed. Selected: " << static_cast<int>(selectedOpponentAIAgent) << std::endl;
+        }
+    }
+    
     initializeGame();
 }
 
 void GUIInterface::selectAIAgent() {
     bool agentSelected = false;
+    
+    std::cout << "Entering AI agent selection screen..." << std::endl;
     
     while (!agentSelected && window.isOpen()) {
         handleEvents();
@@ -173,6 +190,19 @@ void GUIInterface::selectAIAgent() {
         titleText.setFillColor(sf::Color::White);
         titleText.setPosition(WINDOW_WIDTH / 2 - titleText.getGlobalBounds().width / 2, 100);
         window.draw(titleText);
+        
+        // Draw subtitle based on game mode
+        sf::Text subtitleText;
+        subtitleText.setFont(font);
+        if (currentMode == GUIGameMode::HUMAN_VS_AI) {
+            subtitleText.setString("(Your opponent)");
+        } else {
+            subtitleText.setString("(Black player)");
+        }
+        subtitleText.setCharacterSize(18);
+        subtitleText.setFillColor(sf::Color::Yellow);
+        subtitleText.setPosition(WINDOW_WIDTH / 2 - subtitleText.getGlobalBounds().width / 2, 140);
+        window.draw(subtitleText);
         
         // Draw agent options
         std::vector<std::string> agents = {
@@ -202,16 +232,113 @@ void GUIInterface::selectAIAgent() {
         
         window.display();
         
-        // Check for key presses
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num1)) {
-            selectedAIAgent = AIAgentType::RANDOM;
-            agentSelected = true;
-        } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num2)) {
-            selectedAIAgent = AIAgentType::GREEDY;
-            agentSelected = true;
-        } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num3)) {
-            selectedAIAgent = AIAgentType::MINMAX;
-            agentSelected = true;
+        // Check for key press events
+        sf::Event event;
+        while (window.pollEvent(event)) {
+            if (event.type == sf::Event::Closed) {
+                window.close();
+                return;
+            }
+            
+            if (event.type == sf::Event::KeyPressed) {
+                if (event.key.code == sf::Keyboard::Num1) {
+                    selectedAIAgent = AIAgentType::RANDOM;
+                    std::cout << "Selected AI Agent: Random" << std::endl;
+                    agentSelected = true;
+                } else if (event.key.code == sf::Keyboard::Num2) {
+                    selectedAIAgent = AIAgentType::GREEDY;
+                    std::cout << "Selected AI Agent: Greedy" << std::endl;
+                    agentSelected = true;
+                } else if (event.key.code == sf::Keyboard::Num3) {
+                    selectedAIAgent = AIAgentType::MINMAX;
+                    std::cout << "Selected AI Agent: MinMax" << std::endl;
+                    agentSelected = true;
+                }
+            }
+        }
+    }
+}
+
+void GUIInterface::selectOpponentAIAgent() {
+    bool agentSelected = false;
+    
+    std::cout << "Entering opponent AI agent selection screen..." << std::endl;
+    
+    while (!agentSelected && window.isOpen()) {
+        handleEvents();
+        
+        // Clear window
+        window.clear(sf::Color(50, 50, 50));
+        
+        // Draw title
+        sf::Text titleText;
+        titleText.setFont(font);
+        titleText.setString("Select Opponent AI Agent");
+        titleText.setCharacterSize(32);
+        titleText.setFillColor(sf::Color::White);
+        titleText.setPosition(WINDOW_WIDTH / 2 - titleText.getGlobalBounds().width / 2, 100);
+        window.draw(titleText);
+        
+        // Draw subtitle
+        sf::Text subtitleText;
+        subtitleText.setFont(font);
+        subtitleText.setString("(White player)");
+        subtitleText.setCharacterSize(18);
+        subtitleText.setFillColor(sf::Color::Yellow);
+        subtitleText.setPosition(WINDOW_WIDTH / 2 - subtitleText.getGlobalBounds().width / 2, 140);
+        window.draw(subtitleText);
+        
+        // Draw agent options
+        std::vector<std::string> agents = {
+            "1. Random AI",
+            "2. Greedy AI", 
+            "3. MinMax AI"
+        };
+        
+        for (size_t i = 0; i < agents.size(); ++i) {
+            sf::Text agentText;
+            agentText.setFont(font);
+            agentText.setString(agents[i]);
+            agentText.setCharacterSize(20);
+            agentText.setFillColor(sf::Color::White);
+            agentText.setPosition(WINDOW_WIDTH / 2 - agentText.getGlobalBounds().width / 2, 200 + i * 40);
+            window.draw(agentText);
+        }
+        
+        // Draw instructions
+        sf::Text instructionText;
+        instructionText.setFont(font);
+        instructionText.setString("Press 1-3 to select opponent AI agent");
+        instructionText.setCharacterSize(16);
+        instructionText.setFillColor(sf::Color::Yellow);
+        instructionText.setPosition(WINDOW_WIDTH / 2 - instructionText.getGlobalBounds().width / 2, 400);
+        window.draw(instructionText);
+        
+        window.display();
+        
+        // Check for key press events
+        sf::Event event;
+        while (window.pollEvent(event)) {
+            if (event.type == sf::Event::Closed) {
+                window.close();
+                return;
+            }
+            
+            if (event.type == sf::Event::KeyPressed) {
+                if (event.key.code == sf::Keyboard::Num1) {
+                    selectedOpponentAIAgent = AIAgentType::RANDOM;
+                    std::cout << "Selected Opponent AI Agent: Random" << std::endl;
+                    agentSelected = true;
+                } else if (event.key.code == sf::Keyboard::Num2) {
+                    selectedOpponentAIAgent = AIAgentType::GREEDY;
+                    std::cout << "Selected Opponent AI Agent: Greedy" << std::endl;
+                    agentSelected = true;
+                } else if (event.key.code == sf::Keyboard::Num3) {
+                    selectedOpponentAIAgent = AIAgentType::MINMAX;
+                    std::cout << "Selected Opponent AI Agent: MinMax" << std::endl;
+                    agentSelected = true;
+                }
+            }
         }
     }
 }
@@ -233,18 +360,38 @@ void GUIInterface::initializeGame() {
     
     if (currentMode == GUIGameMode::HUMAN_VS_AI || 
         currentMode == GUIGameMode::AI_VS_AI) {
-        selectAIAgent();
+        // Create AI agents based on selections made earlier
+        std::cout << "Creating AI agent with selection: " << static_cast<int>(selectedAIAgent) << std::endl;
         std::string agentType = "";
         switch (selectedAIAgent) {
             case AIAgentType::RANDOM: agentType = "random"; break;
             case AIAgentType::GREEDY: agentType = "greedy"; break;
             case AIAgentType::MINMAX: agentType = "minmax"; break;
         }
+        std::cout << "Agent type string: " << agentType << std::endl;
         aiAgent = createAIAgent(agentType, getAIAgentTypeString(selectedAIAgent));
         if (aiAgent) {
             std::cout << "AI Agent created: " << aiAgent->getName() << std::endl;
         } else {
             std::cout << "Failed to create AI Agent" << std::endl;
+        }
+        
+        // For AI vs AI mode, also create opponent AI
+        if (currentMode == GUIGameMode::AI_VS_AI) {
+            std::cout << "Creating opponent AI agent with selection: " << static_cast<int>(selectedOpponentAIAgent) << std::endl;
+            std::string opponentAgentType = "";
+            switch (selectedOpponentAIAgent) {
+                case AIAgentType::RANDOM: opponentAgentType = "random"; break;
+                case AIAgentType::GREEDY: opponentAgentType = "greedy"; break;
+                case AIAgentType::MINMAX: opponentAgentType = "minmax"; break;
+            }
+            std::cout << "Opponent agent type string: " << opponentAgentType << std::endl;
+            opponentAIAgent = createAIAgent(opponentAgentType, getAIAgentTypeString(selectedOpponentAIAgent));
+            if (opponentAIAgent) {
+                std::cout << "Opponent AI Agent created: " << opponentAIAgent->getName() << std::endl;
+            } else {
+                std::cout << "Failed to create Opponent AI Agent" << std::endl;
+            }
         }
     }
 }
@@ -372,6 +519,24 @@ void GUIInterface::renderUI() {
     }
     gameModeText.setString(modeStr);
     window.draw(gameModeText);
+    
+    // Draw AI agent information
+    if (currentMode == GUIGameMode::HUMAN_VS_AI || currentMode == GUIGameMode::AI_VS_AI) {
+        sf::Text aiInfoText;
+        aiInfoText.setFont(font);
+        aiInfoText.setCharacterSize(12);
+        aiInfoText.setFillColor(sf::Color::Cyan);
+        
+        if (currentMode == GUIGameMode::HUMAN_VS_AI) {
+            aiInfoText.setString("AI Agent: " + getAIAgentTypeString(selectedAIAgent));
+            aiInfoText.setPosition(10, 100);
+        } else { // AI vs AI
+            aiInfoText.setString("Black AI: " + getAIAgentTypeString(selectedAIAgent) + 
+                                " | White AI: " + getAIAgentTypeString(selectedOpponentAIAgent));
+            aiInfoText.setPosition(10, 100);
+        }
+        window.draw(aiInfoText);
+    }
     
     // Draw instructions
     std::string instructionStr = "Space: Pause | R: Reset | ESC: Exit";
@@ -584,10 +749,20 @@ void GUIInterface::processTurn() {
         
         std::cout << "Processing AI turn for " << getPlayerName(currentPlayer) << std::endl;
         
-        if (aiAgent && board.hasValidMoves(currentPlayer)) {
+        // Determine which AI agent to use based on current player and game mode
+        AIAgentBase* currentAIAgent = nullptr;
+        if (currentMode == GUIGameMode::AI_VS_AI) {
+            // In AI vs AI mode, use different agents for each player
+            currentAIAgent = (currentPlayer == CellState::BLACK) ? aiAgent.get() : opponentAIAgent.get();
+        } else {
+            // In Human vs AI mode, always use the selected AI agent
+            currentAIAgent = aiAgent.get();
+        }
+        
+        if (currentAIAgent && board.hasValidMoves(currentPlayer)) {
             std::cout << "AI (" << getPlayerName(currentPlayer) << ") thinking..." << std::endl;
             auto start = std::chrono::steady_clock::now();
-            auto move = aiAgent->getBestMove(board, currentPlayer);
+            auto move = currentAIAgent->getBestMove(board, currentPlayer);
             auto end = std::chrono::steady_clock::now();
             
             auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
@@ -607,7 +782,7 @@ void GUIInterface::processTurn() {
                 std::cerr << "AI returned invalid move: (" << move.first << ", " << move.second << ")" << std::endl;
                 switchPlayer();
             }
-        } else if (!aiAgent) {
+        } else if (!currentAIAgent) {
             std::cerr << "No AI agent available!" << std::endl;
         } else {
             std::cout << "AI has no valid moves available" << std::endl;

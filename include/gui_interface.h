@@ -31,6 +31,7 @@ public:
     
     // AI agent selection
     void selectAIAgent();
+    void selectOpponentAIAgent();
     
     // Game modes
     void playHumanVsHuman();
@@ -63,8 +64,10 @@ private:
     // Game objects
     Board board;
     std::unique_ptr<AIAgentBase> aiAgent;
+    std::unique_ptr<AIAgentBase> opponentAIAgent;
     GUIGameMode currentMode;
     AIAgentType selectedAIAgent;
+    AIAgentType selectedOpponentAIAgent;
     
     // Game state
     CellState currentPlayer;
