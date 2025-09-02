@@ -206,9 +206,10 @@ void GUIInterface::selectAIAgent() {
         
         // Draw agent options
         std::vector<std::string> agents = {
-            "1. Random AI",
-            "2. Greedy AI", 
-            "3. MinMax AI"
+            "A. Random AI",
+            "B. Greedy AI", 
+            "C. MinMax AI",
+            "D. BitBoard AI"
         };
         
         for (size_t i = 0; i < agents.size(); ++i) {
@@ -224,35 +225,43 @@ void GUIInterface::selectAIAgent() {
         // Draw instructions
         sf::Text instructionText;
         instructionText.setFont(font);
-        instructionText.setString("Press 1-3 to select AI agent");
+        instructionText.setString("Press A-D to select AI agent");
         instructionText.setCharacterSize(16);
         instructionText.setFillColor(sf::Color::Yellow);
         instructionText.setPosition(WINDOW_WIDTH / 2 - instructionText.getGlobalBounds().width / 2, 400);
         window.draw(instructionText);
         
         window.display();
-        
-        // Check for key press events
+
+        // Check for key press events and mouse clicks
         sf::Event event;
         while (window.pollEvent(event)) {
             if (event.type == sf::Event::Closed) {
                 window.close();
                 return;
             }
-            
+
             if (event.type == sf::Event::KeyPressed) {
-                if (event.key.code == sf::Keyboard::Num1) {
+                std::cout << "Key pressed: " << event.key.code << std::endl;
+
+                if (event.key.code == sf::Keyboard::A) {
                     selectedAIAgent = AIAgentType::RANDOM;
-                    std::cout << "Selected AI Agent: Random" << std::endl;
+                    std::cout << "Selected AI Agent: Random (A key)" << std::endl;
                     agentSelected = true;
-                } else if (event.key.code == sf::Keyboard::Num2) {
+                } else if (event.key.code == sf::Keyboard::B) {
                     selectedAIAgent = AIAgentType::GREEDY;
-                    std::cout << "Selected AI Agent: Greedy" << std::endl;
+                    std::cout << "Selected AI Agent: Greedy (B key)" << std::endl;
                     agentSelected = true;
-                } else if (event.key.code == sf::Keyboard::Num3) {
+                } else if (event.key.code == sf::Keyboard::C) {
                     selectedAIAgent = AIAgentType::MINMAX;
-                    std::cout << "Selected AI Agent: MinMax" << std::endl;
+                    std::cout << "Selected AI Agent: MinMax (C key)" << std::endl;
                     agentSelected = true;
+                } else if (event.key.code == sf::Keyboard::D) {
+                    selectedAIAgent = AIAgentType::BITBOARD;
+                    std::cout << "Selected AI Agent: BitBoard (D key)" << std::endl;
+                    agentSelected = true;
+                } else {
+                    std::cout << "Unknown key pressed: " << event.key.code << std::endl;
                 }
             }
         }
@@ -290,9 +299,10 @@ void GUIInterface::selectOpponentAIAgent() {
         
         // Draw agent options
         std::vector<std::string> agents = {
-            "1. Random AI",
-            "2. Greedy AI", 
-            "3. MinMax AI"
+            "A. Random AI",
+            "B. Greedy AI", 
+            "C. MinMax AI",
+            "D. BitBoard AI"
         };
         
         for (size_t i = 0; i < agents.size(); ++i) {
@@ -308,7 +318,7 @@ void GUIInterface::selectOpponentAIAgent() {
         // Draw instructions
         sf::Text instructionText;
         instructionText.setFont(font);
-        instructionText.setString("Press 1-3 to select opponent AI agent");
+        instructionText.setString("Press A-D to select opponent AI agent");
         instructionText.setCharacterSize(16);
         instructionText.setFillColor(sf::Color::Yellow);
         instructionText.setPosition(WINDOW_WIDTH / 2 - instructionText.getGlobalBounds().width / 2, 400);
@@ -316,7 +326,7 @@ void GUIInterface::selectOpponentAIAgent() {
         
         window.display();
         
-        // Check for key press events
+        // Check for key press events and mouse clicks
         sf::Event event;
         while (window.pollEvent(event)) {
             if (event.type == sf::Event::Closed) {
@@ -325,18 +335,26 @@ void GUIInterface::selectOpponentAIAgent() {
             }
             
             if (event.type == sf::Event::KeyPressed) {
-                if (event.key.code == sf::Keyboard::Num1) {
+                std::cout << "Opponent AI - Key pressed: " << event.key.code << std::endl;
+
+                if (event.key.code == sf::Keyboard::A) {
                     selectedOpponentAIAgent = AIAgentType::RANDOM;
-                    std::cout << "Selected Opponent AI Agent: Random" << std::endl;
+                    std::cout << "Selected Opponent AI Agent: Random (A key)" << std::endl;
                     agentSelected = true;
-                } else if (event.key.code == sf::Keyboard::Num2) {
+                } else if (event.key.code == sf::Keyboard::B) {
                     selectedOpponentAIAgent = AIAgentType::GREEDY;
-                    std::cout << "Selected Opponent AI Agent: Greedy" << std::endl;
+                    std::cout << "Selected Opponent AI Agent: Greedy (B key)" << std::endl;
                     agentSelected = true;
-                } else if (event.key.code == sf::Keyboard::Num3) {
+                } else if (event.key.code == sf::Keyboard::C) {
                     selectedOpponentAIAgent = AIAgentType::MINMAX;
-                    std::cout << "Selected Opponent AI Agent: MinMax" << std::endl;
+                    std::cout << "Selected Opponent AI Agent: MinMax (C key)" << std::endl;
                     agentSelected = true;
+                } else if (event.key.code == sf::Keyboard::D) {
+                    selectedOpponentAIAgent = AIAgentType::BITBOARD;
+                    std::cout << "Selected Opponent AI Agent: BitBoard (D key)" << std::endl;
+                    agentSelected = true;
+                } else {
+                    std::cout << "Opponent AI - Unknown key pressed: " << event.key.code << std::endl;
                 }
             }
         }
@@ -367,6 +385,7 @@ void GUIInterface::initializeGame() {
             case AIAgentType::RANDOM: agentType = "random"; break;
             case AIAgentType::GREEDY: agentType = "greedy"; break;
             case AIAgentType::MINMAX: agentType = "minmax"; break;
+            case AIAgentType::BITBOARD: agentType = "bitboard"; break;
         }
         std::cout << "Agent type string: " << agentType << std::endl;
         aiAgent = createAIAgent(agentType, getAIAgentTypeString(selectedAIAgent));
@@ -375,7 +394,7 @@ void GUIInterface::initializeGame() {
         } else {
             std::cout << "Failed to create AI Agent" << std::endl;
         }
-        
+
         // For AI vs AI mode, also create opponent AI
         if (currentMode == GUIGameMode::AI_VS_AI) {
             std::cout << "Creating opponent AI agent with selection: " << static_cast<int>(selectedOpponentAIAgent) << std::endl;
@@ -384,6 +403,7 @@ void GUIInterface::initializeGame() {
                 case AIAgentType::RANDOM: opponentAgentType = "random"; break;
                 case AIAgentType::GREEDY: opponentAgentType = "greedy"; break;
                 case AIAgentType::MINMAX: opponentAgentType = "minmax"; break;
+                case AIAgentType::BITBOARD: opponentAgentType = "bitboard"; break;
             }
             std::cout << "Opponent agent type string: " << opponentAgentType << std::endl;
             opponentAIAgent = createAIAgent(opponentAgentType, getAIAgentTypeString(selectedOpponentAIAgent));
@@ -798,6 +818,7 @@ std::string GUIInterface::getAIAgentTypeString(AIAgentType type) const {
         case AIAgentType::RANDOM: return "Random";
         case AIAgentType::GREEDY: return "Greedy";
         case AIAgentType::MINMAX: return "MinMax";
+        case AIAgentType::BITBOARD: return "BitBoard";
         default: return "Unknown";
     }
 }

@@ -15,7 +15,8 @@ enum class GUIGameMode {
 enum class AIAgentType {
     RANDOM,
     GREEDY,
-    MINMAX
+    MINMAX,
+    BITBOARD
 };
 
 class GUIInterface {

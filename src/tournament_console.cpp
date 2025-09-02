@@ -535,6 +535,7 @@ void TournamentConsole::initializeAvailableAgents() {
     availableAgentTypes_ = {
         "random",
         "greedy", 
-        "minmax"
+        "minmax",
+        "bitboard"
     };
 }
