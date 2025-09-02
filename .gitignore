@@ -45,10 +45,12 @@ Thumbs.db
 *.orig
 
 # Tournament output files
-tournament_results.txt
-game_logs.txt
-tournament.log
-ai_vs_ai_game.log
+*.json
+*.txt
+*.log
+*.png
+*.tsv
+analysis_out/
 
 
 # Debug files
