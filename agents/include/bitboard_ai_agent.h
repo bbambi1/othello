@@ -9,8 +9,6 @@
 #include <vector>
 #include <algorithm>
 
-// Forward declarations for Board and CellState; these must be defined
-// elsewhere in your project.
 class Board;
 enum class CellState;
 

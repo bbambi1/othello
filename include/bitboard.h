@@ -18,7 +18,6 @@ public:
     BitBoard();
     BitBoard(uint64_t black, uint64_t white);
 
-    // Copy/assign
     BitBoard(const BitBoard&) = default;
     BitBoard& operator=(const BitBoard&) = default;
 
