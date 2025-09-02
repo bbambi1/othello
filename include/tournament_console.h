@@ -28,6 +28,7 @@ private:
     // Configuration functions
     void configureAgents();
     void configureTournament();
+    void configureTournamentType();
     void configureTimeLimit();
     void configureRounds();
     
@@ -35,6 +36,7 @@ private:
     void runTournament();
     void showResults();
     void saveResults();
+    void saveResultsJson();
     
     // Utility functions
     void clearScreen() const;

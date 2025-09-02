@@ -61,6 +61,7 @@ struct TournamentConfig {
     bool enableVisualFeedback{true};
     bool logGames{true};
     std::string logFile{"tournament.log"};
+    std::string tournamentType{"round_robin"}; // planned: swiss, knockout, etc.
     
     TournamentConfig() = default;
     TournamentConfig(std::chrono::milliseconds limit, int rounds = 1) 
@@ -101,6 +102,7 @@ public:
     // Utility functions
     void printResults() const;
     void saveResults(const std::string& filename) const;
+    void saveResultsJson(const std::string& filename) const;
     void resetTournament();
     
     // Individual game for testing

@@ -18,25 +18,31 @@ TournamentConsole::TournamentConsole() {
 
 void TournamentConsole::run() {
     while (true) {
-        showMainMenu();
-        int choice = getMenuChoice(1, 5);
-        
-        switch (choice) {
-            case 1:
-                configureAgents();
-                break;
-            case 2:
-                configureTournament();
-                break;
-            case 3:
-                runTournament();
-                break;
-            case 4:
-                showResults();
-                break;
-            case 5:
-                std::cout << "Goodbye!" << std::endl;
-                return;
+        clearScreen();
+        std::cout << "Tournament Setup" << std::endl;
+        std::cout << "================" << std::endl;
+        std::cout << std::endl;
+
+        // 1) Select tournament type first
+        configureTournamentType();
+
+        // 2) Configure tournament parameters (time limit, rounds, etc.)
+        configureTournament();
+
+        // 3) Select agents (require at least 2)
+        configureAgents();
+
+        // 4) Run tournament
+        runTournament();
+
+        // 5) Save results as JSON for downstream analysis
+        if (getYesNoInput("Save results as JSON? (y/n): ")) {
+            saveResultsJson();
+        }
+
+        if (!getYesNoInput("Run another tournament setup? (y/n): ")) {
+            std::cout << "Goodbye!" << std::endl;
+            return;
         }
     }
 }
@@ -85,6 +91,7 @@ void TournamentConsole::showConfigurationMenu() {
     
     auto config = tournament_.getConfig();
     std::cout << "Current Settings:" << std::endl;
+    std::cout << "  Type: " << config.tournamentType << std::endl;
     std::cout << "  Time Limit: " << config.timeLimit.count() << "ms" << std::endl;
     std::cout << "  Rounds per Matchup: " << config.roundsPerMatchup << std::endl;
     std::cout << "  Visual Feedback: " << (config.enableVisualFeedback ? "Yes" : "No") << std::endl;
@@ -93,12 +100,13 @@ void TournamentConsole::showConfigurationMenu() {
     
     std::cout << std::endl;
     std::cout << "Options:" << std::endl;
-    std::cout << "1. Set Time Limit" << std::endl;
-    std::cout << "2. Set Rounds per Matchup" << std::endl;
-    std::cout << "3. Toggle Visual Feedback" << std::endl;
-    std::cout << "4. Toggle Game Logging" << std::endl;
-    std::cout << "5. Set Log File" << std::endl;
-    std::cout << "6. Back to Main Menu" << std::endl;
+    std::cout << "1. Set Tournament Type" << std::endl;
+    std::cout << "2. Set Time Limit" << std::endl;
+    std::cout << "3. Set Rounds per Matchup" << std::endl;
+    std::cout << "4. Toggle Visual Feedback" << std::endl;
+    std::cout << "5. Toggle Game Logging" << std::endl;
+    std::cout << "6. Set Log File" << std::endl;
+    std::cout << "7. Back" << std::endl;
     std::cout << std::endl;
 }
 
@@ -151,30 +159,33 @@ void TournamentConsole::configureAgents() {
 void TournamentConsole::configureTournament() {
     while (true) {
         showConfigurationMenu();
-        int choice = getMenuChoice(1, 6);
+        int choice = getMenuChoice(1, 7);
         
         auto config = tournament_.getConfig();
         
         switch (choice) {
             case 1:
-                configureTimeLimit();
+                configureTournamentType();
                 break;
             case 2:
-                configureRounds();
+                configureTimeLimit();
                 break;
             case 3:
+                configureRounds();
+                break;
+            case 4:
                 config.enableVisualFeedback = !config.enableVisualFeedback;
                 tournament_.setConfig(config);
                 std::cout << "Visual feedback " << (config.enableVisualFeedback ? "enabled" : "disabled") << std::endl;
                 waitForKeyPress();
                 break;
-            case 4:
+            case 5:
                 config.logGames = !config.logGames;
                 tournament_.setConfig(config);
                 std::cout << "Game logging " << (config.logGames ? "enabled" : "disabled") << std::endl;
                 waitForKeyPress();
                 break;
-            case 5: {
+            case 6: {
                 std::string newLogFile = getStringInput("Enter log file name: ");
                 if (!newLogFile.empty()) {
                     config.logFile = newLogFile;
@@ -184,10 +195,25 @@ void TournamentConsole::configureTournament() {
                 waitForKeyPress();
                 break;
             }
-            case 6:
+            case 7:
                 return;
         }
     }
+}
+
+void TournamentConsole::configureTournamentType() {
+    auto config = tournament_.getConfig();
+    std::cout << "Select Tournament Type" << std::endl;
+    std::cout << "----------------------" << std::endl;
+    std::cout << "1. Round Robin" << std::endl;
+    int choice = getMenuChoice(1, 1);
+    switch (choice) {
+        case 1:
+        default:
+            config.tournamentType = "round_robin";
+            break;
+    }
+    tournament_.setConfig(config);
 }
 
 void TournamentConsole::configureTimeLimit() {
@@ -230,19 +256,30 @@ void TournamentConsole::runTournament() {
     });
     
     try {
-        tournament_.runRoundRobin();
+        auto config = tournament_.getConfig();
+        if (config.tournamentType == "round_robin") {
+            tournament_.runRoundRobin();
+        } else {
+            std::cout << "Unsupported tournament type: " << config.tournamentType << std::endl;
+            return;
+        }
         
         std::cout << std::endl;
         std::cout << "Tournament completed successfully!" << std::endl;
-        
-        if (getYesNoInput("Save results to file? (y/n): ")) {
-            saveResults();
-        }
         
     } catch (const std::exception& e) {
         std::cout << "Tournament interrupted: " << e.what() << std::endl;
     }
     
+    waitForKeyPress();
+}
+
+void TournamentConsole::saveResultsJson() {
+    std::string filename = getStringInput("Enter JSON filename (or press Enter for 'tournament_results.json'): ");
+    if (filename.empty()) {
+        filename = "tournament_results.json";
+    }
+    tournament_.saveResultsJson(filename);
     waitForKeyPress();
 }
 

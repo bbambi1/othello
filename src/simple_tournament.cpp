@@ -36,15 +36,16 @@ void SimpleTournament::runRoundRobin() {
         return;
     }
     
-    std::cout << "Starting Round Robin Tournament" << std::endl;
-    std::cout << "Agents: " << agents_.size() << std::endl;
-    std::cout << "Rounds per matchup: " << config_.roundsPerMatchup << std::endl;
-    std::cout << "Time limit per move: " << config_.timeLimit.count() << "ms" << std::endl;
-    std::cout << std::string(50, '=') << std::endl;
-    
     // Calculate total games
     int totalMatchups = (agents_.size() * (agents_.size() - 1)) / 2;
-    int totalGames = totalMatchups * config_.roundsPerMatchup;
+    int totalGames = totalMatchups * config_.roundsPerMatchup * 2; // Each round always plays both sides for fairness
+    
+    std::cout << "Starting Round Robin Tournament" << std::endl;
+    std::cout << "Agents: " << agents_.size() << std::endl;
+    std::cout << "Rounds per matchup: " << config_.roundsPerMatchup << " (each round plays both sides for fairness)" << std::endl;
+    std::cout << "Time limit per move: " << config_.timeLimit.count() << "ms" << std::endl;
+    std::cout << "Total games: " << totalGames << std::endl;
+    std::cout << std::string(50, '=') << std::endl;
     int currentGame = 0;
     
     // Initialize agent stats
@@ -73,19 +74,17 @@ void SimpleTournament::runRoundRobin() {
                 gameResults_.push_back(result1);
                 updateStats(result1);
                 
-                // Play game with agent j as black (if rounds > 1)
-                if (config_.roundsPerMatchup > 1) {
-                    currentGame++;
-                    
-                    if (progressCallback_) {
-                        progressCallback_(currentGame, totalGames, matchup + " (reversed)");
-                    }
-                    printProgress(currentGame, totalGames, matchup + " (reversed)");
-                    
-                    auto result2 = playSingleGame(agents_[j].get(), agents_[i].get());
-                    gameResults_.push_back(result2);
-                    updateStats(result2);
+                // Always play the reverse game for fairness (both sides)
+                currentGame++;
+                
+                if (progressCallback_) {
+                    progressCallback_(currentGame, totalGames, matchup + " (reversed)");
                 }
+                printProgress(currentGame, totalGames, matchup + " (reversed)");
+                
+                auto result2 = playSingleGame(agents_[j].get(), agents_[i].get());
+                gameResults_.push_back(result2);
+                updateStats(result2);
             }
         }
     }
@@ -413,6 +412,74 @@ void SimpleTournament::saveResults(const std::string& filename) const {
         file << "\n";
     }
     
+    file.close();
+    std::cout << "Results saved to " << filename << std::endl;
+}
+
+void SimpleTournament::saveResultsJson(const std::string& filename) const {
+    std::ofstream file(filename);
+    if (!file.is_open()) {
+        std::cerr << "Error: Could not open file " << filename << " for writing" << std::endl;
+        return;
+    }
+
+    file << "{\n";
+    // Config
+    file << "  \"config\": {\n";
+    file << "    \"timeLimitMs\": " << config_.timeLimit.count() << ",\n";
+    file << "    \"roundsPerMatchup\": " << config_.roundsPerMatchup << ",\n";
+    file << "    \"tournamentType\": \"" << config_.tournamentType << "\"\n";
+    file << "  },\n";
+
+    // Agents
+    file << "  \"agents\": [";
+    for (size_t i = 0; i < agents_.size(); ++i) {
+        file << "\"" << agents_[i]->getName() << "\"";
+        if (i + 1 < agents_.size()) file << ", ";
+    }
+    file << "],\n";
+
+    // Ranked stats
+    auto ranked = getRankedResults();
+    file << "  \"rankings\": [\n";
+    for (size_t i = 0; i < ranked.size(); ++i) {
+        const auto& s = ranked[i];
+        file << "    {\n";
+        file << "      \"agent\": \"" << s.agentName << "\",\n";
+        file << "      \"games\": " << s.gamesPlayed << ",\n";
+        file << "      \"wins\": " << s.wins << ",\n";
+        file << "      \"losses\": " << s.losses << ",\n";
+        file << "      \"draws\": " << s.draws << ",\n";
+        file << "      \"winRate\": " << s.winRate << ",\n";
+        file << "      \"avgScore\": " << s.averageScore << ",\n";
+        file << "      \"timeouts\": " << s.timeouts << ",\n";
+        file << "      \"crashes\": " << s.crashes << "\n";
+        file << "    }" << (i + 1 < ranked.size() ? "," : "") << "\n";
+    }
+    file << "  ],\n";
+
+    // Games
+    file << "  \"games\": [\n";
+    for (size_t i = 0; i < gameResults_.size(); ++i) {
+        const auto& r = gameResults_[i];
+        file << "    {\n";
+        file << "      \"black\": \"" << r.blackAgent << "\",\n";
+        file << "      \"white\": \"" << r.whiteAgent << "\",\n";
+        file << "      \"blackScore\": " << r.blackScore << ",\n";
+        file << "      \"whiteScore\": " << r.whiteScore << ",\n";
+        file << "      \"winner\": \"" << r.winner << "\",\n";
+        file << "      \"moves\": " << r.moveCount << ",\n";
+        file << "      \"durationMs\": " << r.gameDuration.count() << ",\n";
+        file << "      \"failureReason\": \"" << r.failureReason << "\",\n";
+        file << "      \"blackTimedOut\": " << (r.blackTimedOut ? "true" : "false") << ",\n";
+        file << "      \"whiteTimedOut\": " << (r.whiteTimedOut ? "true" : "false") << ",\n";
+        file << "      \"blackCrashed\": " << (r.blackCrashed ? "true" : "false") << ",\n";
+        file << "      \"whiteCrashed\": " << (r.whiteCrashed ? "true" : "false") << "\n";
+        file << "    }" << (i + 1 < gameResults_.size() ? "," : "") << "\n";
+    }
+    file << "  ]\n";
+
+    file << "}\n";
     file.close();
     std::cout << "Results saved to " << filename << std::endl;
 }
