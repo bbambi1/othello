@@ -155,17 +155,14 @@ uint64_t BitBoard::getOutflank(uint64_t player, uint64_t opponent, int direction
 }
 
 uint64_t BitBoard::getValidMovesBitboard(bool isBlack) const {
-    uint64_t player = getPlayerBoard(isBlack);
-    uint64_t opponent = getOpponentBoard(isBlack);
-    uint64_t empty = ~(player | opponent);
     uint64_t validMoves = 0;
     
-    // Check all 8 directions for valid moves
-    for (int dir = 0; dir < 8; ++dir) {
-        uint64_t temp = shift(player, dir) & opponent;
-        while (temp) {
-            temp = shift(temp, dir) & opponent;
-            validMoves |= temp & empty;
+    // Check every empty position to see if it's a valid move
+    for (int row = 0; row < 8; ++row) {
+        for (int col = 0; col < 8; ++col) {
+            if (isValidMove(row, col, isBlack)) {
+                validMoves |= positionToMask(row, col);
+            }
         }
     }
     
@@ -199,28 +196,43 @@ bool BitBoard::isValidMove(int row, int col, bool isBlack) const {
 }
 
 uint64_t BitBoard::getFlippedBitboard(int row, int col, bool isBlack) const {
+    uint64_t flipped = 0;
     uint64_t player = getPlayerBoard(isBlack);
     uint64_t opponent = getOpponentBoard(isBlack);
-    uint64_t flipped = 0;
-    
-    // Check all 8 directions
+
     for (int dir = 0; dir < 8; ++dir) {
-        uint64_t temp = 0;
-        uint64_t mask = positionToMask(row, col);
-        
-        // Look for opponent discs in this direction
-        uint64_t current = shift(mask, dir) & opponent;
-        while (current) {
-            temp |= current;
-            current = shift(current, dir) & opponent;
+        int dRow = 0, dCol = 0;
+        switch (dir) {
+            case 0: dRow = -1; break; // N
+            case 1: dRow = -1; dCol = 1; break; // NE
+            case 2: dCol = 1; break; // E
+            case 3: dRow = 1; dCol = 1; break; // SE
+            case 4: dRow = 1; break; // S
+            case 5: dRow = 1; dCol = -1; break; // SW
+            case 6: dCol = -1; break; // W
+            case 7: dRow = -1; dCol = -1; break; // NW
         }
-        
-        // If we found a player disc at the end, all temp discs are flipped
-        if (shift(temp, dir) & player) {
-            flipped |= temp;
+
+        int r = row + dRow;
+        int c = col + dCol;
+        uint64_t tempFlipped = 0;
+
+        while (isInBounds(r, c)) {
+            uint64_t posMask = positionToMask(r, c);
+            if (opponent & posMask) {
+                tempFlipped |= posMask;
+            } else if (player & posMask) {
+                flipped |= tempFlipped;
+                break;
+            } else {
+                break;
+            }
+
+            r += dRow;
+            c += dCol;
         }
     }
-    
+
     return flipped;
 }
 
