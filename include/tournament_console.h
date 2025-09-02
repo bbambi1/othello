@@ -31,6 +31,7 @@ private:
     void configureTournamentType();
     void configureTimeLimit();
     void configureRounds();
+    void setupAllAgents();
     
     // Tournament execution
     void runTournament();
