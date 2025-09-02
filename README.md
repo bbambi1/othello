@@ -213,11 +213,43 @@ othello/
 
 ## Contributing
 
-To add new AI agents:
-1. Extend the `AIAgentBase` class
-2. Implement the `getBestMove` method
-3. Register your agent using `REGISTER_AI_AGENT`
-4. Update the GUI to include your agent in the selection
+### Adding New AI Agents
+
+To create a new AI agent and integrate it into both the tournament and GUI:
+
+1. **Create agent files** in the `agents/` folder:
+   - `agents/include/your_ai_agent.h` - Header file
+   - `agents/src/your_ai_agent.cpp` - Implementation file
+
+2. **Implement your agent**:
+   ```cpp
+   class YourAIAgent : public AIAgentBase {
+   public:
+       YourAIAgent(const std::string& name = "YourAI", const std::string& author = "Your Name");
+       std::pair<int, int> getBestMove(const Board& board, CellState player, 
+                                      std::chrono::milliseconds timeLimit) override;
+   };
+   
+   // Register the agent
+   REGISTER_AI_AGENT(YourAIAgent, "your_type")
+   ```
+
+3. **Update build system**:
+   - Add `agents/src/your_ai_agent.cpp` to both `SOURCES_GUI` and `SOURCES_TOURNAMENT` in `Makefile`
+
+4. **Update tournament system**:
+   - Add `"your_type"` to `availableAgentTypes_` in `src/tournament_console.cpp`
+
+5. **Update GUI interface**:
+   - Add `YOUR_TYPE` to `AIAgentType` enum in `include/gui_interface.h`
+   - Add agent option, key handling, and type conversion in `src/gui_interface.cpp`
+
+6. **Build and test**:
+   ```bash
+   make clean && make
+   ```
+
+Your agent will be available in both the tournament system and GUI automatically!
 
 ## Game Rules
 
