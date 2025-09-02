@@ -1,65 +1,37 @@
 #include "bitboard.h"
 #include <algorithm>
-#include <stdexcept>
 #include <bitset>
-#include <random>
 
-// Direction masks for the 8 directions (N, NE, E, SE, S, SW, W, NW)
-const std::array<uint64_t, 8> BitBoard::DIRECTION_MASKS = {
-    0x0101010101010100ULL, // North
-    0x8040201008040200ULL, // Northeast  
-    0x00000000000000FEULL, // East
-    0x0040201008040201ULL, // Southeast
-    0x0001010101010101ULL, // South
-    0x0002040810204080ULL, // Southwest
-    0x7F00000000000000ULL, // West
-    0x8040201008040200ULL  // Northwest
-};
+// Static members
+std::array<std::array<std::array<uint64_t,3>,8>,8> BitBoard::zobristTable;
+bool BitBoard::zobristInitialised = false;
 
-// Direction offsets for bit shifting
-const std::array<int, 8> BitBoard::DIRECTION_OFFSETS = {
-    8,   // North
-    7,   // Northeast
-    1,   // East
-    -9,  // Southeast
-    -8,  // South
-    -7,  // Southwest
-    -1,  // West
-    9    // Northwest
-};
-
-// Precomputed masks for evaluation
-const uint64_t BitBoard::CORNER_MASK = 0x8100000000000081ULL; // Corners: (0,0), (0,7), (7,0), (7,7)
-const uint64_t BitBoard::EDGE_MASK = 0x7E8181818181817EULL;   // All edges except corners
-const uint64_t BitBoard::STABLE_MASK = 0x0000000000000000ULL; // Will be computed dynamically
-
-// Zobrist hashing tables
-std::array<std::array<std::array<uint64_t, 3>, 8>, 8> BitBoard::zobristTable;
-bool BitBoard::zobristInitialized = false;
-
+// Default constructor: start with standard Othello setup.
 BitBoard::BitBoard() {
     reset();
 }
 
-BitBoard::BitBoard(uint64_t black, uint64_t white) 
+BitBoard::BitBoard(uint64_t black, uint64_t white)
     : blackBoard(black), whiteBoard(white) {
 }
 
 void BitBoard::reset() {
-    // Initialize with standard Othello starting position
-    blackBoard = 0x0000001008000000ULL; // Black discs at (3,4) and (4,3)
-    whiteBoard = 0x0000000810000000ULL; // White discs at (3,3) and (4,4)
-}
-
-bool BitBoard::isInBounds(int row, int col) const {
-    return row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE;
+    // Clear both boards
+    blackBoard = 0;
+    whiteBoard = 0;
+    // Starting position: black at d5 (3,4) and e4 (4,3), white at d4 (3,3) and e5 (4,4)
+    // Note: rows/cols are zero‑indexed.  The positions are symmetrical around the centre.
+    setCell(3, 4, 1);
+    setCell(4, 3, 1);
+    setCell(3, 3, 2);
+    setCell(4, 4, 2);
 }
 
 int BitBoard::positionToBit(int row, int col) {
     return row * BOARD_SIZE + col;
 }
 
-std::pair<int, int> BitBoard::bitToPosition(int bit) {
+std::pair<int,int> BitBoard::bitToPosition(int bit) {
     return {bit / BOARD_SIZE, bit % BOARD_SIZE};
 }
 
@@ -68,217 +40,189 @@ uint64_t BitBoard::positionToMask(int row, int col) {
 }
 
 int BitBoard::getCell(int row, int col) const {
-    if (!isInBounds(row, col)) {
+    if (row < 0 || row >= BOARD_SIZE || col < 0 || col >= BOARD_SIZE) {
         throw std::out_of_range("Cell coordinates out of bounds");
     }
-    
     uint64_t mask = positionToMask(row, col);
-    if (blackBoard & mask) return 1; // Black
-    if (whiteBoard & mask) return 2; // White
-    return 0; // Empty
+    if (blackBoard & mask) return 1;
+    if (whiteBoard & mask) return 2;
+    return 0;
 }
 
 void BitBoard::setCell(int row, int col, int state) {
-    if (!isInBounds(row, col)) {
+    if (row < 0 || row >= BOARD_SIZE || col < 0 || col >= BOARD_SIZE) {
         throw std::out_of_range("Cell coordinates out of bounds");
     }
-    
     uint64_t mask = positionToMask(row, col);
-    blackBoard &= ~mask;  // Clear black bit
-    whiteBoard &= ~mask;  // Clear white bit
-    
-    if (state == 1) {      // Black
+    // Clear both bits
+    blackBoard &= ~mask;
+    whiteBoard &= ~mask;
+    if (state == 1) {
         blackBoard |= mask;
-    } else if (state == 2) { // White
+    } else if (state == 2) {
         whiteBoard |= mask;
     }
-    // state == 0 (empty) leaves both bits cleared
 }
 
 uint64_t BitBoard::getPlayerBoard(bool isBlack) const {
     return isBlack ? blackBoard : whiteBoard;
 }
 
+// Corner mask includes the four corner positions
+uint64_t BitBoard::getCornerMask() const {
+    // Precompute once
+    static const uint64_t cornerMask = []() {
+        uint64_t m = 0;
+        // Corners: (0,0), (0,7), (7,0), (7,7)
+        m |= positionToMask(0, 0);
+        m |= positionToMask(0, 7);
+        m |= positionToMask(7, 0);
+        m |= positionToMask(7, 7);
+        return m;
+    }();
+    return cornerMask;
+}
+
+// Edge mask comprises all squares on the outer edge except the four corners
+uint64_t BitBoard::getEdgeMask() const {
+    static const uint64_t edgeMask = []() {
+        uint64_t m = 0;
+        // Top row and bottom row
+        for (int c = 0; c < BOARD_SIZE; ++c) {
+            m |= positionToMask(0, c);
+            m |= positionToMask(BOARD_SIZE - 1, c);
+        }
+        // Left and right columns (exclude corners already added)
+        for (int r = 1; r < BOARD_SIZE - 1; ++r) {
+            m |= positionToMask(r, 0);
+            m |= positionToMask(r, BOARD_SIZE - 1);
+        }
+        // Remove corners from this mask to keep them distinct
+        uint64_t corners = positionToMask(0, 0) | positionToMask(0, 7) |
+                           positionToMask(BOARD_SIZE - 1, 0) |
+                           positionToMask(BOARD_SIZE - 1, BOARD_SIZE - 1);
+        return m & ~corners;
+    }();
+    return edgeMask;
+}
+
+// Stability mask placeholder: returns zero for now.  A full
+// implementation would analyse which discs cannot be flipped.
+uint64_t BitBoard::getStableMask() const {
+    return 0ULL;
+}
+
 uint64_t BitBoard::getOpponentBoard(bool isBlack) const {
     return isBlack ? whiteBoard : blackBoard;
 }
 
-uint64_t BitBoard::shift(uint64_t board, int direction) {
-    int offset = DIRECTION_OFFSETS[direction];
-    if (offset > 0) {
-        return board << offset;
-    } else {
-        return board >> (-offset);
+bool BitBoard::isValidMove(int row, int col, bool isBlack) const {
+    // Must be within bounds and empty
+    if (row < 0 || row >= BOARD_SIZE || col < 0 || col >= BOARD_SIZE) {
+        return false;
     }
+    if (getCell(row, col) != 0) return false;
+    // Must flip at least one disc
+    return getFlippedBitboard(row, col, isBlack) != 0;
 }
 
-uint64_t BitBoard::getLine(int row, int col, int direction) {
-    uint64_t line = 0;
-    
-    // Generate line in the given direction using direction offsets
-    int currentRow = row;
-    int currentCol = col;
-    
-    for (int i = 0; i < 8; ++i) {
-        if (currentRow >= 0 && currentRow < BOARD_SIZE && currentCol >= 0 && currentCol < BOARD_SIZE) {
-            line |= positionToMask(currentRow, currentCol);
-        }
-        
-        // Move in the direction
-        switch (direction) {
-            case 0: currentRow--; break; // North
-            case 1: currentRow--; currentCol++; break; // Northeast
-            case 2: currentCol++; break; // East
-            case 3: currentRow++; currentCol++; break; // Southeast
-            case 4: currentRow++; break; // South
-            case 5: currentRow++; currentCol--; break; // Southwest
-            case 6: currentCol--; break; // West
-            case 7: currentRow--; currentCol--; break; // Northwest
-        }
-    }
-    
-    return line;
-}
-
-uint64_t BitBoard::getOutflank(uint64_t player, uint64_t opponent, int direction) {
-    uint64_t empty = ~(player | opponent);
-    uint64_t outflank = 0;
-    
-    // Check each direction for outflanking moves
-    uint64_t temp = shift(player, direction) & opponent;
-    while (temp) {
-        temp = shift(temp, direction) & opponent;
-        outflank |= temp;
-    }
-    
-    return outflank & empty;
-}
-
-uint64_t BitBoard::getValidMovesBitboard(bool isBlack) const {
-    uint64_t validMoves = 0;
-    
-    // Check every empty position to see if it's a valid move
-    for (int row = 0; row < 8; ++row) {
-        for (int col = 0; col < 8; ++col) {
-            if (isValidMove(row, col, isBlack)) {
-                validMoves |= positionToMask(row, col);
+std::vector<std::pair<int,int>> BitBoard::getValidMoves(bool isBlack) const {
+    std::vector<std::pair<int,int>> moves;
+    for (int r = 0; r < BOARD_SIZE; ++r) {
+        for (int c = 0; c < BOARD_SIZE; ++c) {
+            if (isValidMove(r, c, isBlack)) {
+                moves.emplace_back(r, c);
             }
         }
     }
-    
-    return validMoves;
-}
-
-std::vector<std::pair<int, int>> BitBoard::getValidMoves(bool isBlack) const {
-    std::vector<std::pair<int, int>> moves;
-    uint64_t validMoves = getValidMovesBitboard(isBlack);
-    
-    while (validMoves) {
-        int bit = __builtin_ctzll(validMoves); // Count trailing zeros
-        auto [row, col] = bitToPosition(bit);
-        moves.emplace_back(row, col);
-        validMoves &= validMoves - 1; // Clear the lowest set bit
-    }
-    
     return moves;
-}
-
-bool BitBoard::isValidMove(int row, int col, bool isBlack) const {
-    if (!isInBounds(row, col)) return false;
-    
-    uint64_t mask = positionToMask(row, col);
-    uint64_t occupied = blackBoard | whiteBoard;
-    
-    if (occupied & mask) return false; // Cell is not empty
-    
-    // Check if this move would flip any opponent discs
-    return getFlippedBitboard(row, col, isBlack) != 0;
 }
 
 uint64_t BitBoard::getFlippedBitboard(int row, int col, bool isBlack) const {
     uint64_t flipped = 0;
-    uint64_t player = getPlayerBoard(isBlack);
-    uint64_t opponent = getOpponentBoard(isBlack);
-
-    for (int dir = 0; dir < 8; ++dir) {
-        int dRow = 0, dCol = 0;
-        switch (dir) {
-            case 0: dRow = -1; break; // N
-            case 1: dRow = -1; dCol = 1; break; // NE
-            case 2: dCol = 1; break; // E
-            case 3: dRow = 1; dCol = 1; break; // SE
-            case 4: dRow = 1; break; // S
-            case 5: dRow = 1; dCol = -1; break; // SW
-            case 6: dCol = -1; break; // W
-            case 7: dRow = -1; dCol = -1; break; // NW
-        }
-
-        int r = row + dRow;
-        int c = col + dCol;
-        uint64_t tempFlipped = 0;
-
-        while (isInBounds(r, c)) {
-            uint64_t posMask = positionToMask(r, c);
-            if (opponent & posMask) {
-                tempFlipped |= posMask;
-            } else if (player & posMask) {
-                flipped |= tempFlipped;
+    uint64_t playerBoard = getPlayerBoard(isBlack);
+    uint64_t opponentBoard = getOpponentBoard(isBlack);
+    // Directions: N, NE, E, SE, S, SW, W, NW
+    static const std::array<std::pair<int,int>,8> directions = {
+        std::make_pair(-1, 0),  // N
+        std::make_pair(-1, 1),  // NE
+        std::make_pair(0, 1),   // E
+        std::make_pair(1, 1),   // SE
+        std::make_pair(1, 0),   // S
+        std::make_pair(1, -1),  // SW
+        std::make_pair(0, -1),  // W
+        std::make_pair(-1, -1)  // NW
+    };
+    for (auto [dr, dc] : directions) {
+        int r = row + dr;
+        int c = col + dc;
+        uint64_t temp = 0;
+        bool foundOpponent = false;
+        while (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE) {
+            uint64_t mask = positionToMask(r, c);
+            if (opponentBoard & mask) {
+                // Opponent piece found
+                temp |= mask;
+                foundOpponent = true;
+            } else if (playerBoard & mask) {
+                // Found player's own disc; only flip if we have seen at least one opponent disc
+                if (foundOpponent) {
+                    flipped |= temp;
+                }
                 break;
             } else {
+                // Empty square: cannot flip along this line
                 break;
             }
-
-            r += dRow;
-            c += dCol;
+            r += dr;
+            c += dc;
         }
     }
-
     return flipped;
 }
 
-std::vector<std::pair<int, int>> BitBoard::getFlippedDiscs(int row, int col, bool isBlack) const {
-    std::vector<std::pair<int, int>> flipped;
-    uint64_t flippedBitboard = getFlippedBitboard(row, col, isBlack);
-    
-    while (flippedBitboard) {
-        int bit = __builtin_ctzll(flippedBitboard);
-        auto [fRow, fCol] = bitToPosition(bit);
-        flipped.emplace_back(fRow, fCol);
-        flippedBitboard &= flippedBitboard - 1;
+std::vector<std::pair<int,int>> BitBoard::getFlippedDiscs(int row, int col, bool isBlack) const {
+    std::vector<std::pair<int,int>> discs;
+    uint64_t flipMask = getFlippedBitboard(row, col, isBlack);
+    while (flipMask) {
+        int bit = __builtin_ctzll(flipMask);
+        auto [r, c] = bitToPosition(bit);
+        discs.emplace_back(r, c);
+        flipMask &= flipMask - 1;
     }
-    
-    return flipped;
+    return discs;
 }
 
 bool BitBoard::makeMove(int row, int col, bool isBlack) {
     if (!isValidMove(row, col, isBlack)) {
         return false;
     }
-    
-    uint64_t mask = positionToMask(row, col);
+    uint64_t moveMask = positionToMask(row, col);
     uint64_t flipped = getFlippedBitboard(row, col, isBlack);
-    
-    // Place the disc
     if (isBlack) {
-        blackBoard |= mask;
-    } else {
-        whiteBoard |= mask;
-    }
-    
-    // Flip opponent discs
-    if (isBlack) {
+        blackBoard |= moveMask;
+        // Flip opponent discs
         blackBoard |= flipped;
         whiteBoard &= ~flipped;
     } else {
+        whiteBoard |= moveMask;
         whiteBoard |= flipped;
         blackBoard &= ~flipped;
     }
-    
     return true;
 }
 
 bool BitBoard::hasValidMoves(bool isBlack) const {
-    return getValidMovesBitboard(isBlack) != 0;
+    // Short circuit: if both boards fill the board, no moves remain
+    if (isFull()) return false;
+    for (int r = 0; r < BOARD_SIZE; ++r) {
+        for (int c = 0; c < BOARD_SIZE; ++c) {
+            if (isValidMove(r, c, isBlack)) {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 bool BitBoard::isGameOver() const {
@@ -286,7 +230,8 @@ bool BitBoard::isGameOver() const {
 }
 
 bool BitBoard::isFull() const {
-    return (blackBoard | whiteBoard) == 0xFFFFFFFFFFFFFFFFULL;
+    // All 64 squares occupied if bit count equals 64
+    return __builtin_popcountll(blackBoard | whiteBoard) == TOTAL_CELLS;
 }
 
 int BitBoard::getScore(bool isBlack) const {
@@ -297,20 +242,6 @@ int BitBoard::getTotalDiscs() const {
     return __builtin_popcountll(blackBoard | whiteBoard);
 }
 
-uint64_t BitBoard::getCornerMask() const {
-    return CORNER_MASK;
-}
-
-uint64_t BitBoard::getEdgeMask() const {
-    return EDGE_MASK;
-}
-
-uint64_t BitBoard::getStableMask() const {
-    // For now, return empty mask - stability calculation is complex
-    // and would require more sophisticated analysis
-    return 0;
-}
-
 bool BitBoard::operator==(const BitBoard& other) const {
     return blackBoard == other.blackBoard && whiteBoard == other.whiteBoard;
 }
@@ -319,49 +250,68 @@ bool BitBoard::operator!=(const BitBoard& other) const {
     return !(*this == other);
 }
 
-void BitBoard::initializeZobrist() {
-    if (zobristInitialized) return;
-    
-    // Initialize random number generator
-    std::random_device rd;
-    std::mt19937_64 gen(rd());
-    std::uniform_int_distribution<uint64_t> dis;
-    
-    // Generate random keys for each position and player
-    for (int row = 0; row < 8; ++row) {
-        for (int col = 0; col < 8; ++col) {
-            for (int player = 0; player < 3; ++player) { // 0=empty, 1=black, 2=white
-                zobristTable[row][col][player] = dis(gen);
+// Helper that shifts all bits in `board` by (dr,dc) while discarding bits
+// that would cross the board edges.  This implementation explicitly
+// computes row/col coordinates for each set bit.  Although slower than
+// bitwise masks, it avoids wrap‑around and is easy to verify.
+uint64_t BitBoard::shiftMask(uint64_t board, int dr, int dc) {
+    uint64_t result = 0;
+    while (board) {
+        int bit = __builtin_ctzll(board);
+        board &= board - 1;
+        auto [r, c] = bitToPosition(bit);
+        int nr = r + dr;
+        int nc = c + dc;
+        if (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE) {
+            result |= positionToMask(nr, nc);
+        }
+    }
+    return result;
+}
+
+// Initialise Zobrist table.  If a non‑zero seed is provided, use it to
+// seed the random engine.  Otherwise use a random device.
+void BitBoard::initializeZobrist(uint64_t seed) {
+    if (zobristInitialised) return;
+    std::mt19937_64 gen;
+    if (seed == 0) {
+        std::random_device rd;
+        gen.seed(rd());
+    } else {
+        gen.seed(seed);
+    }
+    std::uniform_int_distribution<uint64_t> dist;
+    for (int r = 0; r < 8; ++r) {
+        for (int c = 0; c < 8; ++c) {
+            for (int p = 0; p < 3; ++p) {
+                zobristTable[r][c][p] = dist(gen);
             }
         }
     }
-    
-    zobristInitialized = true;
+    zobristInitialised = true;
 }
 
 uint64_t BitBoard::getZobristKey(int row, int col, int player) {
-    if (!zobristInitialized) {
+    if (!zobristInitialised) {
+        // Seed deterministically when called without explicit seed
         initializeZobrist();
     }
     return zobristTable[row][col][player];
 }
 
 uint64_t BitBoard::getZobristHash() const {
-    if (!zobristInitialized) {
+    if (!zobristInitialised) {
         initializeZobrist();
     }
-    
     uint64_t hash = 0;
-    
-    // XOR all occupied positions
-    for (int row = 0; row < 8; ++row) {
-        for (int col = 0; col < 8; ++col) {
-            int cellState = getCell(row, col);
-            if (cellState != 0) { // Not empty
-                hash ^= zobristTable[row][col][cellState];
+    for (int r = 0; r < BOARD_SIZE; ++r) {
+        for (int c = 0; c < BOARD_SIZE; ++c) {
+            int state = getCell(r, c);
+            // XOR only non‑empty cells; empty cells contribute zero
+            if (state != 0) {
+                hash ^= zobristTable[r][c][state];
             }
         }
     }
-    
     return hash;
 }
