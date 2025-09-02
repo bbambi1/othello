@@ -37,12 +37,7 @@ protected:
     bool isValidMove(const Board& board, int row, int col, CellState player) const;
     CellState getOpponent(CellState player) const;
     
-    // Common evaluation functions
-    double evaluateCornerControl(const Board& board, CellState player) const;
-    double evaluateEdgeControl(const Board& board, CellState player) const;
-    double evaluateMobility(const Board& board, CellState player) const;
-    double evaluateDiscCount(const Board& board, CellState player) const;
-    double evaluateStability(const Board& board, CellState player) const;
+
     
     // Time management
     bool isTimeUp(std::chrono::steady_clock::time_point startTime, 

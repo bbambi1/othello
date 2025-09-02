@@ -103,22 +103,114 @@ double MinMaxAIAgent::minMax(Board& board, int depth, double alpha, double beta,
 double MinMaxAIAgent::evaluateBoard(const Board& board, CellState player) const {
     double score = 0.0;
     
-    // Corner control with high weight
-    score += evaluateCornerControl(board, player) * 25.0;
-    
-    // Edge control
-    score += evaluateEdgeControl(board, player) * 5.0;
-    
-    // Mobility (ability to make moves)
-    score += evaluateMobility(board, player) * 15.0;
-    
-    // Disc count
-    score += evaluateDiscCount(board, player) * 5.0;
-    
-    // Stability
-    score += evaluateStability(board, player) * 10.0;
+    // Use internal evaluation methods with MinMax-specific weights
+    score += evaluateCornerControl(board, player);
+    score += evaluateEdgeControl(board, player);
+    score += evaluateMobility(board, player);
+    score += evaluateDiscCount(board, player);
+    score += evaluateStability(board, player);
     
     return score;
+}
+
+// Internal evaluation methods with MinMax-specific weights
+double MinMaxAIAgent::evaluateCornerControl(const Board& board, CellState player) const {
+    static const std::vector<std::pair<int, int>> corners = {
+        {0, 0}, {0, 7}, {7, 0}, {7, 7}
+    };
+    
+    double score = 0.0;
+    for (const auto& corner : corners) {
+        CellState cellState = board.getCell(corner.first, corner.second);
+        if (cellState == player) {
+            score += 25.0; // Corner is very valuable
+        } else if (cellState == getOpponent(player)) {
+            score -= 25.0;
+        }
+    }
+    return score;
+}
+
+double MinMaxAIAgent::evaluateEdgeControl(const Board& board, CellState player) const {
+    double score = 0.0;
+    
+    // Evaluate edges (excluding corners) with MinMax weight
+    for (int i = 1; i < 7; ++i) {
+        // Top edge
+        if (board.getCell(0, i) == player) score += 5.0;
+        else if (board.getCell(0, i) == getOpponent(player)) score -= 5.0;
+        
+        // Bottom edge
+        if (board.getCell(7, i) == player) score += 5.0;
+        else if (board.getCell(7, i) == getOpponent(player)) score -= 5.0;
+        
+        // Left edge
+        if (board.getCell(i, 0) == player) score += 5.0;
+        else if (board.getCell(i, 0) == getOpponent(player)) score -= 5.0;
+        
+        // Right edge
+        if (board.getCell(i, 7) == player) score += 5.0;
+        else if (board.getCell(i, 7) == getOpponent(player)) score -= 5.0;
+    }
+    
+    return score;
+}
+
+double MinMaxAIAgent::evaluateMobility(const Board& board, CellState player) const {
+    int playerMoves = board.getValidMoves(player).size();
+    int opponentMoves = board.getValidMoves(getOpponent(player)).size();
+    
+    if (playerMoves + opponentMoves == 0) return 0.0;
+    
+    // Apply MinMax mobility weight
+    return static_cast<double>(playerMoves - opponentMoves) / (playerMoves + opponentMoves) * 15.0;
+}
+
+double MinMaxAIAgent::evaluateDiscCount(const Board& board, CellState player) const {
+    int playerDiscs = board.getScore(player);
+    int opponentDiscs = board.getScore(getOpponent(player));
+    int totalDiscs = board.getTotalDiscs();
+    
+    if (totalDiscs == 0) return 0.0;
+    
+    // Apply MinMax disc count weight
+    return static_cast<double>(playerDiscs - opponentDiscs) / totalDiscs * 5.0;
+}
+
+double MinMaxAIAgent::evaluateStability(const Board& board, CellState player) const {
+    // Simple stability evaluation based on corner adjacency with MinMax weight
+    double score = 0.0;
+    
+    for (int row = 0; row < 8; ++row) {
+        for (int col = 0; col < 8; ++col) {
+            if (board.getCell(row, col) == player) {
+                // Check if disc is adjacent to corners (less stable)
+                bool adjacentToCorner = false;
+                for (int dr = -1; dr <= 1; ++dr) {
+                    for (int dc = -1; dc <= 1; ++dc) {
+                        int nr = row + dr;
+                        int nc = col + dc;
+                        if (nr >= 0 && nr < 8 && nc >= 0 && nc < 8) {
+                            if ((nr == 0 || nr == 7) && (nc == 0 || nc == 7)) {
+                                adjacentToCorner = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (adjacentToCorner) break;
+                }
+                
+                if (adjacentToCorner) {
+                    score -= 2.0; // Less stable
+                } else {
+                    score += 1.0; // More stable
+                }
+            }
+        }
+    }
+    
+    // Apply MinMax stability weight
+    return score * 10.0;
 }
 
 // Register the AI agent
