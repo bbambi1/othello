@@ -1,81 +1,11 @@
-#include "example_ai_agents.h"
-#include <random>
+#include "minmax_ai_agent.h"
 #include <algorithm>
 #include <limits>
 #include <chrono>
 
-// Random AI Agent Implementation
-RandomAIAgent::RandomAIAgent(const std::string& name) : AIAgentBase(name) {
-}
-
-std::pair<int, int> RandomAIAgent::getBestMove(const Board& board, CellState player, 
-                                               std::chrono::milliseconds timeLimit) {
-    auto startTime = std::chrono::steady_clock::now();
-    
-    auto validMoves = getValidMoves(board, player);
-    if (validMoves.empty()) {
-        return {-1, -1}; // No valid moves
-    }
-    
-    // Check if we're running out of time
-    if (isTimeUp(startTime, timeLimit)) {
-        // Return a random move if time is up
-        static std::random_device rd;
-        static std::mt19937 gen(rd());
-        std::uniform_int_distribution<> dis(0, validMoves.size() - 1);
-        return validMoves[dis(gen)];
-    }
-    
-    // Use current time as seed for randomness
-    static std::random_device rd;
-    static std::mt19937 gen(rd());
-    std::uniform_int_distribution<> dis(0, validMoves.size() - 1);
-    
-    return validMoves[dis(gen)];
-}
-
-// Greedy AI Agent Implementation
-GreedyAIAgent::GreedyAIAgent(const std::string& name) : AIAgentBase(name) {
-}
-
-std::pair<int, int> GreedyAIAgent::getBestMove(const Board& board, CellState player, 
-                                               std::chrono::milliseconds timeLimit) {
-    auto startTime = std::chrono::steady_clock::now();
-    
-    auto validMoves = getValidMoves(board, player);
-    if (validMoves.empty()) {
-        return {-1, -1}; // No valid moves
-    }
-    
-    std::pair<int, int> bestMove = validMoves[0];
-    int maxFlips = 0;
-    
-    for (const auto& move : validMoves) {
-        // Check time before processing each move
-        if (isTimeUp(startTime, timeLimit)) {
-            // Return current best move if time is up
-            break;
-        }
-        
-        Board tempBoard = board;
-        if (tempBoard.makeMove(move.first, move.second, player)) {
-            int currentScore = tempBoard.getScore(player);
-            int originalScore = board.getScore(player);
-            int flips = currentScore - originalScore - 1; // -1 because we added our disc
-            
-            if (flips > maxFlips) {
-                maxFlips = flips;
-                bestMove = move;
-            }
-        }
-    }
-    
-    return bestMove;
-}
-
 // MinMax AI Agent Implementation
-MinMaxAIAgent::MinMaxAIAgent(const std::string& name, int depth) 
-    : AIAgentBase(name), maxDepth(depth) {
+MinMaxAIAgent::MinMaxAIAgent(const std::string& name, const std::string& author, int depth) 
+    : AIAgentBase(name, author), maxDepth(depth) {
 }
 
 std::pair<int, int> MinMaxAIAgent::getBestMove(const Board& board, CellState player, 
@@ -191,7 +121,5 @@ double MinMaxAIAgent::evaluateBoard(const Board& board, CellState player) const 
     return score;
 }
 
-// Register all AI agents
-REGISTER_AI_AGENT(RandomAIAgent, "random")
-REGISTER_AI_AGENT(GreedyAIAgent, "greedy")
+// Register the AI agent
 REGISTER_AI_AGENT(MinMaxAIAgent, "minmax")

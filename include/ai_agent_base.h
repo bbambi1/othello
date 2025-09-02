@@ -8,7 +8,7 @@
 // Base class for AI agents in the competition
 class AIAgentBase {
 public:
-    AIAgentBase(const std::string& name);
+    AIAgentBase(const std::string& name, const std::string& author = "");
     virtual ~AIAgentBase() = default;
     
     // Main method that participants must implement
@@ -25,9 +25,12 @@ public:
     // Utility methods
     const std::string& getName() const { return name; }
     void setName(const std::string& newName) { name = newName; }
+    const std::string& getAuthor() const { return author; }
+    void setAuthor(const std::string& newAuthor) { author = newAuthor; }
     
 protected:
     std::string name;
+    std::string author;
     
     // Helper methods that derived classes can use
     std::vector<std::pair<int, int>> getValidMoves(const Board& board, CellState player) const;
@@ -47,10 +50,10 @@ protected:
 };
 
 // Function pointer type for AI agent creation (defined after AIAgentBase)
-using AIAgentCreator = std::unique_ptr<AIAgentBase>(*)(const std::string&);
+using AIAgentCreator = std::unique_ptr<AIAgentBase>(*)(const std::string&, const std::string&);
 
 // Factory function for creating AI agents
-std::unique_ptr<AIAgentBase> createAIAgent(const std::string& type, const std::string& name = "");
+std::unique_ptr<AIAgentBase> createAIAgent(const std::string& type, const std::string& name = "", const std::string& author = "");
 
 // Registration macro for AI agents
 #define REGISTER_AI_AGENT(ClassName, TypeName) \
@@ -58,8 +61,8 @@ std::unique_ptr<AIAgentBase> createAIAgent(const std::string& type, const std::s
         class ClassName##Factory { \
         public: \
             ClassName##Factory() { \
-                registerAIAgent(TypeName, [](const std::string& name) -> std::unique_ptr<AIAgentBase> { \
-                    return std::make_unique<ClassName>(name); \
+                registerAIAgent(TypeName, [](const std::string& name, const std::string& author) -> std::unique_ptr<AIAgentBase> { \
+                    return std::make_unique<ClassName>(name, author); \
                 }); \
             } \
         }; \

@@ -6,10 +6,10 @@ SRCDIR = src
 INCDIR = include
 
 # Source files for GUI target
-SOURCES_GUI = src/board.cpp src/ai_agent_base.cpp src/example_ai_agents.cpp src/gui_interface.cpp src/main_gui.cpp
+SOURCES_GUI = src/board.cpp src/ai_agent_base.cpp agents/src/random_ai_agent.cpp agents/src/greedy_ai_agent.cpp agents/src/minmax_ai_agent.cpp src/gui_interface.cpp src/main_gui.cpp
 
 # Source files for Tournament target
-SOURCES_TOURNAMENT = src/board.cpp src/ai_agent_base.cpp src/example_ai_agents.cpp src/simple_tournament.cpp src/tournament_console.cpp src/main_tournament_console.cpp
+SOURCES_TOURNAMENT = src/board.cpp src/ai_agent_base.cpp agents/src/random_ai_agent.cpp agents/src/greedy_ai_agent.cpp agents/src/minmax_ai_agent.cpp src/simple_tournament.cpp src/tournament_console.cpp src/main_tournament_console.cpp
 
 # Object files
 OBJECTS_GUI = $(SOURCES_GUI:.cpp=.o)
@@ -42,14 +42,14 @@ $(TARGET_TOURNAMENT): $(OBJECTS_TOURNAMENT)
 
 # Compile source files with different flags for GUI
 src/gui_interface.o: src/gui_interface.cpp
-	$(CXX) $(CXXFLAGS) -DUSE_SFML -I$(INCDIR) -c $< -o $@
+	$(CXX) $(CXXFLAGS) -DUSE_SFML -I$(INCDIR) -Iagents/include -c $< -o $@
 
 src/main_gui.o: src/main_gui.cpp
-	$(CXX) $(CXXFLAGS) -DUSE_SFML -I$(INCDIR) -c $< -o $@
+	$(CXX) $(CXXFLAGS) -DUSE_SFML -I$(INCDIR) -Iagents/include -c $< -o $@
 
 # Compile other source files
 %.o: %.cpp
-	$(CXX) $(CXXFLAGS) -I$(INCDIR) -c $< -o $@
+	$(CXX) $(CXXFLAGS) -I$(INCDIR) -Iagents/include -c $< -o $@
 
 # Clean build files
 clean:

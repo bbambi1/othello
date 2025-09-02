@@ -7,8 +7,8 @@
 // Global registry for AI agents
 static std::map<std::string, AIAgentCreator> aiAgentRegistry;
 
-AIAgentBase::AIAgentBase(const std::string& agentName) 
-    : name(agentName) {
+AIAgentBase::AIAgentBase(const std::string& agentName, const std::string& agentAuthor) 
+    : name(agentName), author(agentAuthor) {
 }
 
 void AIAgentBase::onGameStart() {
@@ -143,10 +143,10 @@ bool AIAgentBase::isTimeUp(std::chrono::steady_clock::time_point startTime,
 }
 
 // Factory implementation
-std::unique_ptr<AIAgentBase> createAIAgent(const std::string& type, const std::string& name) {
+std::unique_ptr<AIAgentBase> createAIAgent(const std::string& type, const std::string& name, const std::string& author) {
     auto it = aiAgentRegistry.find(type);
     if (it != aiAgentRegistry.end()) {
-        return it->second(name);
+        return it->second(name, author);
     }
     
     std::cerr << "Unknown AI agent type: " << type << std::endl;
