@@ -1,40 +1,40 @@
 #pragma once
 
-#include "tournament_manager.h"
+#include "simple_tournament.h"
 #include <memory>
 #include <vector>
 #include <string>
 
-class TournamentInterface {
+class TournamentConsole {
 public:
-    TournamentInterface();
+    TournamentConsole();
+    ~TournamentConsole() = default;
     
     // Main interface
     void run();
     
 private:
-    TournamentManager tournament;
+    SimpleTournament tournament_;
     
     // Available agent types
-    std::vector<std::string> availableAgentTypes;
+    std::vector<std::string> availableAgentTypes_;
     
     // Menu functions
     void showMainMenu();
     void showAgentSelectionMenu();
-    void showTournamentModeMenu();
     void showConfigurationMenu();
-    void showSafetyMenu();
+    void showTournamentMenu();
     
     // Configuration functions
     void configureAgents();
-    void configureTournamentMode();
-    void configureParameters();
-    void configureSafety();
+    void configureTournament();
+    void configureTimeLimit();
+    void configureRounds();
     
     // Tournament execution
     void runTournament();
-    void showTournamentProgress();
-    void showFinalResults();
+    void showResults();
+    void saveResults();
     
     // Utility functions
     void clearScreen() const;
@@ -47,10 +47,9 @@ private:
     // Display functions
     void displayCurrentConfiguration() const;
     void displayAvailableAgents() const;
-    void displayTournamentModes() const;
-    void displaySafetyOptions() const;
+    void displaySelectedAgents() const;
     
     // Validation functions
     bool validateConfiguration() const;
-    std::string getTournamentTypeName(const std::string& type) const;
+    void initializeAvailableAgents();
 };

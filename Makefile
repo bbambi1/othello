@@ -1,23 +1,28 @@
 CXX = g++
 CXXFLAGS = -std=c++17 -Wall -Wextra -O2
 TARGET_GUI = othello_gui
+TARGET_TOURNAMENT = othello_tournament
 SRCDIR = src
 INCDIR = include
 
 # Source files for GUI target
 SOURCES_GUI = src/board.cpp src/ai_agent_base.cpp src/example_ai_agents.cpp src/gui_interface.cpp src/main_gui.cpp
 
+# Source files for Tournament target
+SOURCES_TOURNAMENT = src/board.cpp src/ai_agent_base.cpp src/example_ai_agents.cpp src/simple_tournament.cpp src/tournament_console.cpp src/main_tournament_console.cpp
+
 # Object files
 OBJECTS_GUI = $(SOURCES_GUI:.cpp=.o)
+OBJECTS_TOURNAMENT = $(SOURCES_TOURNAMENT:.cpp=.o)
 
 # SFML configuration
 SFML_LIBS = -lsfml-graphics -lsfml-window -lsfml-system
 SFML_AVAILABLE = $(shell pkg-config --exists sfml-all && echo "yes" || echo "no")
 
 # Default target
-all: $(TARGET_GUI)
+all: $(TARGET_GUI) $(TARGET_TOURNAMENT)
 
-# GUI version (default)
+# GUI version
 ifneq ($(SFML_AVAILABLE),no)
 $(TARGET_GUI): $(OBJECTS_GUI)
 	$(CXX) $(OBJECTS_GUI) $(SFML_LIBS) -o $(TARGET_GUI)
@@ -30,6 +35,10 @@ $(TARGET_GUI):
 	@echo "Windows: Download from https://www.sfml-dev.org/download.php"
 	@exit 1
 endif
+
+# Tournament version (console-based, no SFML required)
+$(TARGET_TOURNAMENT): $(OBJECTS_TOURNAMENT)
+	$(CXX) $(OBJECTS_TOURNAMENT) -o $(TARGET_TOURNAMENT)
 
 # Compile source files with different flags for GUI
 src/gui_interface.o: src/gui_interface.cpp
@@ -44,7 +53,7 @@ src/main_gui.o: src/main_gui.cpp
 
 # Clean build files
 clean:
-	rm -f $(OBJECTS_GUI) $(TARGET_GUI)
+	rm -f $(OBJECTS_GUI) $(OBJECTS_TOURNAMENT) $(TARGET_GUI) $(TARGET_TOURNAMENT)
 
 # Install dependencies (Ubuntu/Debian)
 install-deps:
@@ -62,12 +71,19 @@ install-sfml:
 run: $(TARGET_GUI)
 	./$(TARGET_GUI)
 
+# Run the tournament
+run-tournament: $(TARGET_TOURNAMENT)
+	./$(TARGET_TOURNAMENT)
+
 # Build GUI version
 build: $(TARGET_GUI)
 
+# Build tournament version
+build-tournament: $(TARGET_TOURNAMENT)
+
 # Debug build
 debug: CXXFLAGS += -g -DDEBUG
-debug: $(TARGET_GUI)
+debug: $(TARGET_GUI) $(TARGET_TOURNAMENT)
 
 # Check SFML availability
 check-sfml:
@@ -78,4 +94,4 @@ check-sfml:
 		echo "SFML is not available. Install SFML development libraries."; \
 	fi
 
-.PHONY: all clean install-deps install-sfml run build debug check-sfml
+.PHONY: all clean install-deps install-sfml run run-tournament build build-tournament debug check-sfml

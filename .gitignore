@@ -13,10 +13,8 @@
 *.lib
 
 # Executables
-othello
 othello_gui
-tournament_runner
-debug_test
+othello_tournament
 
 # Object files
 src/*.o

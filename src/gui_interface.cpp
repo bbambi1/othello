@@ -7,14 +7,14 @@
 
 GUIInterface::GUIInterface() 
     : currentMode(GUIGameMode::HUMAN_VS_HUMAN), 
+      selectedAIAgent(AIAgentType::MINMAX),
+      selectedOpponentAIAgent(AIAgentType::MINMAX),
       currentPlayer(CellState::BLACK), 
       gameRunning(false), 
       gamePaused(false),
       aiJustMoved(false),
       aiDepth(6),
-      aiMoveDelay(500),
-      selectedAIAgent(AIAgentType::MINMAX),
-      selectedOpponentAIAgent(AIAgentType::MINMAX) {
+      aiMoveDelay(500) {
     initializeSFML();
     loadFonts();
     setupUI();
@@ -637,7 +637,7 @@ void GUIInterface::highlightValidMoves(CellState player) {
     }
 }
 
-void GUIInterface::animateMove(int row, int col, CellState player) {
+void GUIInterface::animateMove(int /*row*/, int /*col*/, CellState /*player*/) {
     // Simple animation - could be enhanced with more sophisticated effects
     for (int i = 0; i < 5; ++i) {
         render();

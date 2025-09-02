@@ -1,14 +1,16 @@
-# Othello Game with AI Agents
+# Othello Tournament System
 
-A complete Othello/Reversi game implementation in modern C++17 with SFML graphics support and three different AI agents.
+A comprehensive Othello/Reversi tournament platform in modern C++17 with multiple AI agents, safety monitoring, and various tournament formats.
 
 ## Project Overview
 
-This project provides:
+This tournament system provides:
 - **Complete Othello game engine** with proper rules and validation
-- **Three AI agents** with different strategies
-- **Modern GUI interface** with AI agent selection
-- **Easy-to-use interface** for both human and AI gameplay
+- **Multiple AI agents** with different strategies and difficulty levels
+- **Tournament management** with Round Robin, Single Elimination, and Swiss System formats
+- **Safety monitoring** to prevent AI agents from crashing or exceeding time limits
+- **Modern GUI interface** for both gameplay and tournament management
+- **Comprehensive logging** and statistical analysis
 
 ## Quick Start
 
@@ -25,11 +27,18 @@ make check-sfml
 # Install SFML if needed (Ubuntu/Debian)
 make install-sfml
 
-# Build the game
+# Build both GUI and tournament systems
 make
 
-# Run the game
+# Run the GUI game
 ./othello_gui
+
+# Run the tournament system (console-based)
+./othello_tournament
+
+# Or build/run individually
+make build-tournament
+make run-tournament
 ```
 
 ## Architecture
@@ -37,29 +46,44 @@ make
 ### Core Components
 - **`Board`**: Complete Othello game engine with rules, validation, and scoring
 - **`AIAgentBase`**: Abstract base class for all AI agents
+- **`SimpleTournament`**: New streamlined tournament system with safety enforcement
+- **`TournamentConsole`**: Console-based interface for tournament management
 - **`GUIInterface`**: SFML-based graphical interface with AI selection
 
 ### AI Agent Framework
-The project includes three pre-built AI agents:
+The tournament system includes multiple pre-built AI agents:
 - **Random**: Makes random moves from valid options
 - **Greedy**: Always picks the move that flips the most discs
 - **MinMax**: Uses alpha-beta pruning with strategic evaluation
 
-## Game Features
+## Tournament Features
+
+### Tournament Formats
+- **Round Robin**: Every agent plays every other agent multiple times
+- **Single Elimination**: Knockout tournament format
+- **Swiss System**: Pairing system for balanced competition
+
+### Safety & Monitoring
+- **Time Limit Enforcement**: Prevents AI agents from taking too long
+- **Crash Protection**: Monitors and handles AI agent crashes gracefully
+- **Move Validation**: Ensures all moves are legal according to Othello rules
+- **Resource Monitoring**: Tracks AI agent behavior and violations
 
 ### Othello Rules Implementation
 - 8×8 board with proper disc flipping
 - Move validation and legal move detection
 - Score calculation and game state management
 - Automatic turn passing when no valid moves
+- Complete rule set as per [official Othello rules](https://www.ffothello.org/othello/regles-du-jeu/)
 
 ### User Interface
 - **Modern GUI**: Visual gameplay with move highlighting and AI agent selection
+- **Tournament Interface**: Console-based tournament management and configuration
 - **Responsive Design**: Clean, intuitive interface for all game modes
 
-## How to Play
+## How to Use
 
-### Getting Started
+### Playing Individual Games
 1. Run `./othello_gui`
 2. Choose game mode:
    - **Human vs Human**: Two human players
@@ -69,24 +93,23 @@ The project includes three pre-built AI agents:
    - **Random AI**: Makes random moves
    - **Greedy AI**: Always chooses the move that flips the most discs
    - **MinMax AI**: Uses strategic evaluation with alpha-beta pruning
-4. For AI vs AI mode, you'll also select the opponent AI agent
-5. Click on valid board positions to make moves
-6. The game automatically highlights valid moves and shows current scores
+4. Click on valid board positions to make moves
+5. The game automatically highlights valid moves and shows current scores
 
-## AI Agent Selection
-
-### Human vs AI Mode
-- Choose which AI agent you want to play against
-- The AI will play as White (second player)
-- You'll see which AI agent is being used in the UI
-
-### AI vs AI Mode
-- Select the AI agent for Black (first player)
-- Select the AI agent for White (second player)
-- Watch two different AI strategies compete
-- Perfect for testing and comparing AI performance
-
-### Available AI Agents
+### Running Tournaments
+1. Run `./othello_tournament` to start the console interface
+2. Configure tournament parameters:
+   - **Select AI agents**: Choose from Random, Greedy, and MinMax agents
+   - **Set time limits**: Configure how long each agent has per move (default: 5 seconds)
+   - **Set rounds**: Choose how many games each pair plays (default: 1)
+   - **Configure logging**: Enable/disable game logging and set log file
+3. Execute the Round Robin tournament
+4. View comprehensive results including:
+   - Win/loss/draw records for each agent
+   - Average scores and game statistics
+   - Timeout and crash tracking
+   - Head-to-head records between agents
+5. Save results to file for analysis
 
 ## AI Agent Details
 
@@ -105,6 +128,24 @@ The project includes three pre-built AI agents:
 - **Evaluation**: Considers corner control, edge control, mobility, and disc count
 - **Use case**: Challenging opponent, demonstrates advanced AI techniques
 - **Difficulty**: Medium to hard
+
+## Tournament Features
+
+### Safety Rules
+- **Time Limit Enforcement**: Agents must complete moves within the specified time limit
+- **Crash Protection**: Agents that crash or throw exceptions automatically lose the game
+- **Move Validation**: All moves are validated against Othello rules
+- **Resource Isolation**: Agents cannot access external resources or modify game state
+
+### Statistics Tracking
+The tournament system provides comprehensive statistics including:
+- **Win/Loss/Draw Records**: Complete performance history for each agent
+- **Average Scores**: Mean score achieved by each agent
+- **Timeout Tracking**: Number of games lost due to time limit violations
+- **Crash Tracking**: Number of games lost due to agent crashes
+- **Head-to-Head Records**: Detailed matchup statistics between specific agents
+- **Game Duration**: Time taken for each game
+- **Move Count**: Number of moves in each game
 
 ## Building from Source
 
@@ -125,8 +166,17 @@ brew install gcc make sfml
 # Clean build
 make clean
 
-# Build the game
+# Build both GUI and tournament
 make
+
+# Build only GUI (requires SFML)
+make build
+
+# Build only tournament (no SFML required)
+make build-tournament
+
+# Run tournament
+make run-tournament
 
 # Debug build
 make debug
@@ -139,19 +189,26 @@ make check-sfml
 
 ```
 othello/
-├── include/           # Header files
-│   ├── board.h       # Game board and rules
-│   ├── ai_agent_base.h  # AI agent interface
-│   ├── example_ai_agents.h  # AI agent implementations
-│   └── gui_interface.h     # GUI interface
-├── src/               # Source files
-│   ├── board.cpp     # Game logic implementation
-│   ├── ai_agent_base.cpp  # AI agent framework
+├── include/                    # Header files
+│   ├── board.h                # Game board and rules
+│   ├── ai_agent_base.h        # AI agent interface
+│   ├── example_ai_agents.h    # AI agent implementations
+│   ├── gui_interface.h        # GUI interface
+│   ├── simple_tournament.h    # Tournament system
+│   └── tournament_console.h   # Tournament console interface
+├── src/                        # Source files
+│   ├── board.cpp              # Game logic implementation
+│   ├── ai_agent_base.cpp      # AI agent framework
 │   ├── example_ai_agents.cpp  # AI agent implementations
-│   ├── gui_interface.cpp     # GUI implementation
-│   └── main_gui.cpp  # GUI entry point
-├── Makefile          # Build configuration
-└── README.md         # This file
+│   ├── gui_interface.cpp      # GUI implementation
+│   ├── main_gui.cpp           # GUI entry point
+│   ├── simple_tournament.cpp  # Tournament system implementation
+│   ├── tournament_console.cpp # Tournament console implementation
+│   └── main_tournament_console.cpp # Tournament entry point
+├── Makefile                   # Build configuration
+├── othello_gui               # GUI executable
+├── othello_tournament        # Tournament executable
+└── README.md                 # This file
 ```
 
 ## Contributing
@@ -161,6 +218,10 @@ To add new AI agents:
 2. Implement the `getBestMove` method
 3. Register your agent using `REGISTER_AI_AGENT`
 4. Update the GUI to include your agent in the selection
+
+## Game Rules
+
+This implementation follows the official Othello rules. For complete rule details, visit: [Official Othello Rules](https://www.ffothello.org/othello/regles-du-jeu/)
 
 ## License
 
