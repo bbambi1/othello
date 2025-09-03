@@ -4,7 +4,6 @@
 #include <map>
 #include <iostream>
 
-// Global registry for AI agents
 static std::map<std::string, AIAgentCreator> aiAgentRegistry;
 
 AIAgentBase::AIAgentBase(const std::string& agentName, const std::string& agentAuthor) 

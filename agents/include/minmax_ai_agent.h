@@ -17,7 +17,7 @@ private:
                   std::chrono::steady_clock::time_point startTime,
                   std::chrono::milliseconds timeLimit);
     double evaluateBoard(const Board& board, CellState player) const;
-    
+
     // Private evaluation methods for MinMax strategy
     double evaluateCornerControl(const Board& board, CellState player) const;
     double evaluateEdgeControl(const Board& board, CellState player) const;

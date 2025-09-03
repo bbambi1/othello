@@ -35,11 +35,11 @@ void SimpleTournament::runRoundRobin() {
         std::cout << "Error: Need at least 2 agents for a tournament" << std::endl;
         return;
     }
-    
+
     // Calculate total games
     int totalMatchups = (agents_.size() * (agents_.size() - 1)) / 2;
     int totalGames = totalMatchups * config_.roundsPerMatchup * 2; // Each round always plays both sides for fairness
-    
+
     std::cout << "Starting Round Robin Tournament" << std::endl;
     std::cout << "Agents: " << agents_.size() << std::endl;
     std::cout << "Rounds per matchup: " << config_.roundsPerMatchup << " (each round plays both sides for fairness)" << std::endl;
@@ -47,48 +47,48 @@ void SimpleTournament::runRoundRobin() {
     std::cout << "Total games: " << totalGames << std::endl;
     std::cout << std::string(50, '=') << std::endl;
     int currentGame = 0;
-    
+
     // Initialize agent stats
     for (const auto& agent : agents_) {
         agentStats_[agent->getName()] = AgentStats();
         agentStats_[agent->getName()].agentName = agent->getName();
     }
-    
+
     // Play all matchups
     for (size_t i = 0; i < agents_.size(); ++i) {
         for (size_t j = i + 1; j < agents_.size(); ++j) {
             std::string matchup = agents_[i]->getName() + " vs " + agents_[j]->getName();
             std::cout << "\nMatchup: " << matchup << std::endl;
-            
+
             for (int round = 0; round < config_.roundsPerMatchup; ++round) {
                 currentGame++;
-                
+
                 // Update progress
                 if (progressCallback_) {
                     progressCallback_(currentGame, totalGames, matchup);
                 }
                 printProgress(currentGame, totalGames, matchup);
-                
+
                 // Play game with agent i as black
                 auto result1 = playSingleGame(agents_[i].get(), agents_[j].get());
                 gameResults_.push_back(result1);
                 updateStats(result1);
-                
+
                 // Always play the reverse game for fairness (both sides)
                 currentGame++;
-                
+
                 if (progressCallback_) {
                     progressCallback_(currentGame, totalGames, matchup + " (reversed)");
                 }
                 printProgress(currentGame, totalGames, matchup + " (reversed)");
-                
+
                 auto result2 = playSingleGame(agents_[j].get(), agents_[i].get());
                 gameResults_.push_back(result2);
                 updateStats(result2);
             }
         }
     }
-    
+
     std::cout << "\n" << std::string(50, '=') << std::endl;
     std::cout << "Tournament Complete!" << std::endl;
     printResults();
@@ -98,13 +98,13 @@ GameResult SimpleTournament::playSingleGame(AIAgentBase* blackAgent, AIAgentBase
     GameResult result;
     result.blackAgent = blackAgent->getName();
     result.whiteAgent = whiteAgent->getName();
-    
+
     Board board;
     CellState currentPlayer = CellState::BLACK;
     int moveCount = 0;
-    
+
     auto gameStart = std::chrono::steady_clock::now();
-    
+
     // Notify agents of game start
     try {
         blackAgent->onGameStart();
@@ -112,23 +112,23 @@ GameResult SimpleTournament::playSingleGame(AIAgentBase* blackAgent, AIAgentBase
     } catch (...) {
         // If agents crash during game start, we'll handle it during moves
     }
-    
+
     // Game loop
     while (!board.isGameOver()) {
         AIAgentBase* currentAgent = (currentPlayer == CellState::BLACK) ? blackAgent : whiteAgent;
         std::string agentName = currentAgent->getName();
-        
+
         // Check if current player has valid moves
         if (!board.hasValidMoves(currentPlayer)) {
             // Player must pass
             currentPlayer = (currentPlayer == CellState::BLACK) ? CellState::WHITE : CellState::BLACK;
             continue;
         }
-        
+
         // Get move from agent with safety checks
         bool timedOut = false, crashed = false;
         auto move = getSafeMove(currentAgent, board, currentPlayer, agentName, timedOut, crashed);
-        
+
         // Handle failures
         if (timedOut || crashed) {
             if (currentPlayer == CellState::BLACK) {
@@ -144,7 +144,7 @@ GameResult SimpleTournament::playSingleGame(AIAgentBase* blackAgent, AIAgentBase
             }
             break;
         }
-        
+
         // Make the move
         if (!board.makeMove(move.first, move.second, currentPlayer)) {
             // Invalid move - agent loses
@@ -157,7 +157,7 @@ GameResult SimpleTournament::playSingleGame(AIAgentBase* blackAgent, AIAgentBase
             }
             break;
         }
-        
+
         // Notify agents of the move
         try {
             blackAgent->onMoveMade(move.first, move.second, currentPlayer);
@@ -165,16 +165,16 @@ GameResult SimpleTournament::playSingleGame(AIAgentBase* blackAgent, AIAgentBase
         } catch (...) {
             // If agents crash during move notification, continue the game
         }
-        
+
         moveCount++;
         currentPlayer = (currentPlayer == CellState::BLACK) ? CellState::WHITE : CellState::BLACK;
     }
-    
+
     // Determine final result if no failure occurred
     if (result.winner.empty()) {
         result.blackScore = board.getScore(CellState::BLACK);
         result.whiteScore = board.getScore(CellState::WHITE);
-        
+
         if (result.blackScore > result.whiteScore) {
             result.winner = "BLACK";
         } else if (result.whiteScore > result.blackScore) {
@@ -192,11 +192,11 @@ GameResult SimpleTournament::playSingleGame(AIAgentBase* blackAgent, AIAgentBase
             result.whiteScore = 64;
         }
     }
-    
+
     result.moveCount = moveCount;
     auto gameEnd = std::chrono::steady_clock::now();
     result.gameDuration = std::chrono::duration_cast<std::chrono::milliseconds>(gameEnd - gameStart);
-    
+
     // Notify agents of game end
     try {
         CellState winner = (result.winner == "BLACK") ? CellState::BLACK : 
@@ -206,7 +206,7 @@ GameResult SimpleTournament::playSingleGame(AIAgentBase* blackAgent, AIAgentBase
     } catch (...) {
         // If agents crash during game end notification, ignore it
     }
-    
+
     return result;
 }
 
@@ -215,20 +215,20 @@ std::pair<int, int> SimpleTournament::getSafeMove(AIAgentBase* agent, const Boar
                                                 bool& timedOut, bool& crashed) {
     timedOut = false;
     crashed = false;
-    
+
     try {
         auto startTime = std::chrono::steady_clock::now();
         auto move = agent->getBestMove(board, player, config_.timeLimit);
         auto endTime = std::chrono::steady_clock::now();
-        
+
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
         if (duration > config_.timeLimit) {
             timedOut = true;
             return {-1, -1};  // Invalid move to trigger loss
         }
-        
+
         return move;
-        
+
     } catch (const std::exception& e) {
         crashed = true;
         std::cerr << "Agent " << agentName << " crashed: " << e.what() << std::endl;
@@ -246,7 +246,7 @@ void SimpleTournament::updateStats(const GameResult& result) {
     blackStats.gamesPlayed++;
     blackStats.totalScore += result.blackScore;
     blackStats.totalScoreAgainst += result.whiteScore;
-    
+
     if (result.winner == "BLACK") {
         blackStats.wins++;
         blackStats.winsAgainst[result.whiteAgent]++;
@@ -257,16 +257,16 @@ void SimpleTournament::updateStats(const GameResult& result) {
         blackStats.draws++;
         blackStats.drawsAgainst[result.whiteAgent]++;
     }
-    
+
     if (result.blackTimedOut) blackStats.timeouts++;
     if (result.blackCrashed) blackStats.crashes++;
-    
+
     // Update white agent stats
     auto& whiteStats = agentStats_[result.whiteAgent];
     whiteStats.gamesPlayed++;
     whiteStats.totalScore += result.whiteScore;
     whiteStats.totalScoreAgainst += result.blackScore;
-    
+
     if (result.winner == "WHITE") {
         whiteStats.wins++;
         whiteStats.winsAgainst[result.blackAgent]++;
@@ -277,10 +277,10 @@ void SimpleTournament::updateStats(const GameResult& result) {
         whiteStats.draws++;
         whiteStats.drawsAgainst[result.blackAgent]++;
     }
-    
+
     if (result.whiteTimedOut) whiteStats.timeouts++;
     if (result.whiteCrashed) whiteStats.crashes++;
-    
+
     // Update win rates and averages
     for (auto& [name, stats] : agentStats_) {
         if (stats.gamesPlayed > 0) {
@@ -293,11 +293,11 @@ void SimpleTournament::updateStats(const GameResult& result) {
 
 void SimpleTournament::printProgress(int current, int total, const std::string& currentMatch) const {
     if (!config_.enableVisualFeedback) return;
-    
+
     double progress = static_cast<double>(current) / total;
     int barWidth = 30;
     int pos = static_cast<int>(barWidth * progress);
-    
+
     std::cout << "\rProgress: [";
     for (int i = 0; i < barWidth; ++i) {
         if (i < pos) std::cout << "=";
@@ -312,9 +312,9 @@ void SimpleTournament::printProgress(int current, int total, const std::string& 
 void SimpleTournament::printResults() const {
     std::cout << "\n\nTOURNAMENT RESULTS\n";
     std::cout << std::string(80, '=') << std::endl;
-    
+
     auto rankedResults = getRankedResults();
-    
+
     std::cout << std::left << std::setw(15) << "Agent" 
               << std::setw(6) << "Games" 
               << std::setw(6) << "Wins" 
@@ -326,7 +326,7 @@ void SimpleTournament::printResults() const {
               << std::setw(6) << "Crash"
               << std::endl;
     std::cout << std::string(80, '-') << std::endl;
-    
+
     for (const auto& stats : rankedResults) {
         std::cout << std::left << std::setw(15) << stats.agentName
                   << std::setw(6) << stats.gamesPlayed
@@ -339,7 +339,7 @@ void SimpleTournament::printResults() const {
                   << std::setw(6) << stats.crashes
                   << std::endl;
     }
-    
+
     std::cout << "\nLegend: TO = Timeouts, Crash = Crashes\n";
 }
 
@@ -348,7 +348,7 @@ std::vector<AgentStats> SimpleTournament::getRankedResults() const {
     for (const auto& [name, stats] : agentStats_) {
         results.push_back(stats);
     }
-    
+
     // Sort by win rate, then by average score
     std::sort(results.begin(), results.end(), [](const AgentStats& a, const AgentStats& b) {
         if (std::abs(a.winRate - b.winRate) > 0.001) {
@@ -356,7 +356,7 @@ std::vector<AgentStats> SimpleTournament::getRankedResults() const {
         }
         return a.averageScore > b.averageScore;
     });
-    
+
     return results;
 }
 
@@ -366,12 +366,12 @@ void SimpleTournament::saveResults(const std::string& filename) const {
         std::cerr << "Error: Could not open file " << filename << " for writing" << std::endl;
         return;
     }
-    
+
     file << "Othello Tournament Results\n";
     file << "==========================\n\n";
-    
+
     auto rankedResults = getRankedResults();
-    
+
     file << "Final Rankings:\n";
     file << std::left << std::setw(15) << "Agent" 
          << std::setw(6) << "Games" 
@@ -384,7 +384,7 @@ void SimpleTournament::saveResults(const std::string& filename) const {
          << std::setw(6) << "Crash"
          << std::endl;
     file << std::string(80, '-') << std::endl;
-    
+
     for (const auto& stats : rankedResults) {
         file << std::left << std::setw(15) << stats.agentName
              << std::setw(6) << stats.gamesPlayed
@@ -397,10 +397,10 @@ void SimpleTournament::saveResults(const std::string& filename) const {
              << std::setw(6) << stats.crashes
              << std::endl;
     }
-    
+
     file << "\n\nIndividual Game Results:\n";
     file << "=======================\n";
-    
+
     for (size_t i = 0; i < gameResults_.size(); ++i) {
         const auto& result = gameResults_[i];
         file << "Game " << (i + 1) << ": " << result.blackAgent << " vs " << result.whiteAgent << "\n";
@@ -411,7 +411,7 @@ void SimpleTournament::saveResults(const std::string& filename) const {
         }
         file << "\n";
     }
-    
+
     file.close();
     std::cout << "Results saved to " << filename << std::endl;
 }

@@ -17,7 +17,7 @@
 
 TournamentConsole::TournamentConsole() {
     initializeAvailableAgents();
-    
+
     // Set default configuration
     auto config = tournament_.getConfig();
     config.timeLimit = std::chrono::milliseconds(1000);  // 1 second default
@@ -65,9 +65,9 @@ void TournamentConsole::showMainMenu() {
     std::cout << "Othello Tournament System" << std::endl;
     std::cout << "=========================" << std::endl;
     std::cout << std::endl;
-    
+
     displayCurrentConfiguration();
-    
+
     std::cout << std::endl;
     std::cout << "Main Menu:" << std::endl;
     std::cout << "1. Configure Agents" << std::endl;
@@ -83,10 +83,10 @@ void TournamentConsole::showAgentSelectionMenu() {
     std::cout << "Agent Selection" << std::endl;
     std::cout << "===============" << std::endl;
     std::cout << std::endl;
-    
+
     displayAvailableAgents();
     displaySelectedAgents();
-    
+
     std::cout << std::endl;
     std::cout << "Options:" << std::endl;
     std::cout << "1. Add Agent" << std::endl;
@@ -101,7 +101,7 @@ void TournamentConsole::showConfigurationMenu() {
     std::cout << "Tournament Configuration" << std::endl;
     std::cout << "========================" << std::endl;
     std::cout << std::endl;
-    
+
     auto config = tournament_.getConfig();
     std::cout << "Current Settings:" << std::endl;
     std::cout << "  Type: " << config.tournamentType << std::endl;
@@ -110,7 +110,7 @@ void TournamentConsole::showConfigurationMenu() {
     std::cout << "  Visual Feedback: " << (config.enableVisualFeedback ? "Yes" : "No") << std::endl;
     std::cout << "  Log Games: " << (config.logGames ? "Yes" : "No") << std::endl;
     std::cout << "  Log File: " << config.logFile << std::endl;
-    
+
     std::cout << std::endl;
     std::cout << "Options:" << std::endl;
     std::cout << "1. Set Tournament Type" << std::endl;
@@ -127,23 +127,23 @@ void TournamentConsole::configureAgents() {
     while (true) {
         showAgentSelectionMenu();
         int choice = getMenuChoice(1, 4);
-        
+
         switch (choice) {
             case 1: {
                 std::cout << "Available Agent Types:" << std::endl;
                 for (size_t i = 0; i < availableAgentTypes_.size(); ++i) {
                     std::cout << (i + 1) << ". " << availableAgentTypes_[i] << std::endl;
                 }
-                
+
                 int agentChoice = getIntInput("Select agent type (1-" + std::to_string(availableAgentTypes_.size()) + "): ", 
                                              1, availableAgentTypes_.size());
                 std::string agentType = availableAgentTypes_[agentChoice - 1];
-                
+
                 std::string customName = getStringInput("Enter custom name (or press Enter for default): ");
                 if (customName.empty()) {
                     customName = agentType;
                 }
-                
+
                 tournament_.addAgent(agentType, customName);
                 std::cout << "Added agent: " << customName << " (" << agentType << ")" << std::endl;
                 waitForKeyPress();
@@ -173,9 +173,9 @@ void TournamentConsole::configureTournament() {
     while (true) {
         showConfigurationMenu();
         int choice = getMenuChoice(1, 7);
-        
+
         auto config = tournament_.getConfig();
-        
+
         switch (choice) {
             case 1:
                 configureTournamentType();
@@ -221,7 +221,7 @@ void TournamentConsole::configureTournamentType() {
     std::cout << "   Press Enter to continue...";
     std::string dummy;
     std::getline(std::cin, dummy);
-    
+
     config.tournamentType = "round_robin";
     tournament_.setConfig(config);
     std::cout << "   ✓ Tournament type: Round Robin" << std::endl;
@@ -233,10 +233,10 @@ void TournamentConsole::configureTimeLimit() {
     std::cout << "2. Set Time Limit per Move" << std::endl;
     std::cout << "   Default: 1000ms" << std::endl;
     std::cout << "   Enter time limit in milliseconds (100-30000) or press Enter for default: ";
-    
+
     std::string input;
     std::getline(std::cin, input);
-    
+
     int timeLimit = 1000; // Default
     if (!input.empty()) {
         try {
@@ -250,10 +250,10 @@ void TournamentConsole::configureTimeLimit() {
             timeLimit = 1000;
         }
     }
-    
+
     config.timeLimit = std::chrono::milliseconds(timeLimit);
     tournament_.setConfig(config);
-    
+
     std::cout << "   ✓ Time limit: " << timeLimit << "ms" << std::endl;
     std::cout << std::endl;
 }
@@ -264,10 +264,10 @@ void TournamentConsole::configureRounds() {
     std::cout << "   Note: 1 round = 2 games per matchup (each agent plays both black and white)" << std::endl;
     std::cout << "   Default: 3 rounds" << std::endl;
     std::cout << "   Enter number of rounds (1-10) or press Enter for default: ";
-    
+
     std::string input;
     std::getline(std::cin, input);
-    
+
     int rounds = 3; // Default
     if (!input.empty()) {
         try {
@@ -281,10 +281,10 @@ void TournamentConsole::configureRounds() {
             rounds = 3;
         }
     }
-    
+
     config.roundsPerMatchup = rounds;
     tournament_.setConfig(config);
-    
+
     std::cout << "   ✓ Rounds per matchup: " << rounds << " (each side plays both black and white)" << std::endl;
     std::cout << std::endl;
 }
@@ -292,15 +292,15 @@ void TournamentConsole::configureRounds() {
 void TournamentConsole::setupAllAgents() {
     // Clear any existing agents
     tournament_.clearAgents();
-    
+
     std::cout << "4. Adding All Available Agents" << std::endl;
-    
+
     // Add all available agent types
     for (const auto& agentType : availableAgentTypes_) {
         tournament_.addAgent(agentType, agentType);
         std::cout << "   ✓ Added: " << agentType << std::endl;
     }
-    
+
     std::cout << "   Total agents: " << availableAgentTypes_.size() << std::endl;
     std::cout << std::endl;
 }
@@ -310,18 +310,18 @@ void TournamentConsole::runTournament() {
         waitForKeyPress();
         return;
     }
-    
+
     // Ensure visual feedback and logging are always enabled
     auto config = tournament_.getConfig();
     config.enableVisualFeedback = true;
     config.logGames = true;
     tournament_.setConfig(config);
-    
+
     std::cout << "5. Running Tournament" << std::endl;
     std::cout << "   Press Ctrl+C to interrupt (results will be saved)" << std::endl;
     std::cout << "   Starting in 3 seconds...";
     std::cout.flush();
-    
+
     // Countdown
     for (int i = 3; i > 0; i--) {
         std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -329,12 +329,12 @@ void TournamentConsole::runTournament() {
         std::cout.flush();
     }
     std::cout << std::endl << std::endl;
-    
+
     // Set up progress callback for visual feedback
     tournament_.setProgressCallback([](int /*current*/, int /*total*/, const std::string& /*currentMatch*/) {
         // Progress is already handled in the tournament class
     });
-    
+
     try {
         if (config.tournamentType == "round_robin") {
             tournament_.runRoundRobin();
@@ -342,11 +342,11 @@ void TournamentConsole::runTournament() {
             std::cout << "Unsupported tournament type: " << config.tournamentType << std::endl;
             return;
         }
-        
+
         std::cout << std::endl;
         std::cout << "   ✓ Tournament completed successfully!" << std::endl;
         std::cout << std::endl;
-        
+
     } catch (const std::exception& e) {
         std::cout << "   ✗ Tournament interrupted: " << e.what() << std::endl;
         std::cout << std::endl;
@@ -355,20 +355,20 @@ void TournamentConsole::runTournament() {
 
 void TournamentConsole::saveResultsJson() {
     std::cout << "6. Saving Results" << std::endl;
-    
+
     // Generate timestamp-based filename
     auto now = std::chrono::system_clock::now();
     auto time_t = std::chrono::system_clock::to_time_t(now);
     auto tm = *std::localtime(&time_t);
-    
+
     std::ostringstream oss;
     oss << "tournament_results_" 
         << std::put_time(&tm, "%Y%m%d_%H%M%S") 
         << ".json";
-    
+
     std::string filename = oss.str();
     tournament_.saveResultsJson(filename);
-    
+
     std::cout << "   ✓ Results saved to: " << filename << std::endl;
     std::cout << std::endl;
 }
@@ -378,14 +378,14 @@ void TournamentConsole::showResults() {
     std::cout << "Tournament Results" << std::endl;
     std::cout << "==================" << std::endl;
     std::cout << std::endl;
-    
+
     if (tournament_.getGameResults().empty()) {
         std::cout << "No tournament results available." << std::endl;
         std::cout << "Run a tournament first." << std::endl;
     } else {
         tournament_.printResults();
     }
-    
+
     std::cout << std::endl;
     waitForKeyPress();
 }
@@ -395,7 +395,7 @@ void TournamentConsole::saveResults() {
     if (filename.empty()) {
         filename = "tournament_results.txt";
     }
-    
+
     tournament_.saveResults(filename);
     waitForKeyPress();
 }
@@ -410,10 +410,10 @@ void TournamentConsole::clearScreen() const {
 
 void TournamentConsole::waitForKeyPress() const {
     std::cout << "Press Enter to continue...";
-    
+
     // Clear any error flags
     std::cin.clear();
-    
+
     // Use getline to wait for user input (more reliable)
     std::string dummy;
     std::getline(std::cin, dummy);
@@ -424,7 +424,7 @@ int TournamentConsole::getMenuChoice(int min, int max) const {
     while (true) {
         std::cout << "Enter your choice (" << min << "-" << max << "): ";
         std::cin >> choice;
-        
+
         if (std::cin.fail() || choice < min || choice > max) {
             std::cin.clear();
             std::cin.ignore(10000, '\n');
@@ -448,7 +448,7 @@ int TournamentConsole::getIntInput(const std::string& prompt, int min, int max) 
     while (true) {
         std::cout << prompt;
         std::cin >> value;
-        
+
         if (std::cin.fail() || value < min || value > max) {
             std::cin.clear();
             std::cin.ignore(10000, '\n');
@@ -466,10 +466,10 @@ bool TournamentConsole::getYesNoInput(const std::string& prompt) const {
     while (true) {
         std::cout << prompt;
         std::getline(std::cin, input);
-        
+
         // Convert to lowercase
         std::transform(input.begin(), input.end(), input.begin(), ::tolower);
-        
+
         if (input == "y" || input == "yes") {
             return true;
         } else if (input == "n" || input == "no") {
@@ -483,7 +483,7 @@ bool TournamentConsole::getYesNoInput(const std::string& prompt) const {
 void TournamentConsole::displayCurrentConfiguration() const {
     auto config = tournament_.getConfig();
     auto agentNames = tournament_.getAgentNames();
-    
+
     std::cout << "Current Configuration:" << std::endl;
     std::cout << "  Agents: " << agentNames.size() << std::endl;
     std::cout << "  Time Limit: " << config.timeLimit.count() << "ms" << std::endl;
@@ -506,7 +506,7 @@ void TournamentConsole::displayAvailableAgents() const {
 
 void TournamentConsole::displaySelectedAgents() const {
     auto agentNames = tournament_.getAgentNames();
-    
+
     std::cout << std::endl;
     std::cout << "Selected Agents (" << agentNames.size() << "):" << std::endl;
     if (agentNames.empty()) {
@@ -520,13 +520,13 @@ void TournamentConsole::displaySelectedAgents() const {
 
 bool TournamentConsole::validateConfiguration() const {
     auto agentNames = tournament_.getAgentNames();
-    
+
     if (agentNames.size() < 2) {
         std::cout << "Error: Need at least 2 agents for a tournament." << std::endl;
         std::cout << "Current agents: " << agentNames.size() << std::endl;
         return false;
     }
-    
+
     return true;
 }
 

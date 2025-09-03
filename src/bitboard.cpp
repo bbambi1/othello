@@ -2,11 +2,9 @@
 #include <algorithm>
 #include <bitset>
 
-// Static members
 std::array<std::array<std::array<uint64_t,3>,8>,8> BitBoard::zobristTable;
 bool BitBoard::zobristInitialised = false;
 
-// Default constructor: start with standard Othello setup.
 BitBoard::BitBoard() {
     reset();
 }
@@ -16,7 +14,6 @@ BitBoard::BitBoard(uint64_t black, uint64_t white)
 }
 
 void BitBoard::reset() {
-    // Clear both boards
     blackBoard = 0;
     whiteBoard = 0;
     // Starting position: black at d5 (3,4) and e4 (4,3), white at d4 (3,3) and e5 (4,4)

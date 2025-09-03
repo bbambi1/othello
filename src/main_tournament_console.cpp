@@ -13,6 +13,6 @@ int main() {
         std::cerr << "Unknown error occurred" << std::endl;
         return 1;
     }
-    
+
     return 0;
 }

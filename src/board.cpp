@@ -7,11 +7,10 @@ Board::Board() {
 }
 
 void Board::reset() {
-    // Initialize all cells as empty
     for (auto& row : grid) {
         std::fill(row.begin(), row.end(), CellState::EMPTY);
     }
-    
+
     // Set up initial 4 discs in the center
     int center = BOARD_SIZE / 2;
     grid[center - 1][center - 1] = CellState::WHITE;
@@ -56,18 +55,18 @@ bool Board::checkDirection(int row, int col, Direction dir, CellState player) co
     auto [dRow, dCol] = getDirectionOffset(dir);
     int currentRow = row + dRow;
     int currentCol = col + dCol;
-    
+
     // Must have at least one opponent disc in this direction
     if (!isInBounds(currentRow, currentCol) || 
         grid[currentRow][currentCol] == player || 
         grid[currentRow][currentCol] == CellState::EMPTY) {
         return false;
     }
-    
+
     // Look for a disc of the same color
     currentRow += dRow;
     currentCol += dCol;
-    
+
     while (isInBounds(currentRow, currentCol)) {
         if (grid[currentRow][currentCol] == CellState::EMPTY) {
             return false;
@@ -78,7 +77,7 @@ bool Board::checkDirection(int row, int col, Direction dir, CellState player) co
         currentRow += dRow;
         currentCol += dCol;
     }
-    
+
     return false;
 }
 
@@ -87,7 +86,7 @@ std::vector<std::pair<int, int>> Board::getDiscsInDirection(int row, int col, Di
     auto [dRow, dCol] = getDirectionOffset(dir);
     int currentRow = row + dRow;
     int currentCol = col + dCol;
-    
+
     while (isInBounds(currentRow, currentCol) && grid[currentRow][currentCol] != player) {
         if (grid[currentRow][currentCol] == CellState::EMPTY) {
             break;
@@ -96,7 +95,7 @@ std::vector<std::pair<int, int>> Board::getDiscsInDirection(int row, int col, Di
         currentRow += dRow;
         currentCol += dCol;
     }
-    
+
     return discs;
 }
 
@@ -105,20 +104,20 @@ bool Board::isValidMove(int row, int col, CellState player) const {
     if (!isInBounds(row, col) || grid[row][col] != CellState::EMPTY) {
         return false;
     }
-    
+
     // Check all 8 directions
     for (int dir = 0; dir < 8; ++dir) {
         if (checkDirection(row, col, static_cast<Direction>(dir), player)) {
             return true;
         }
     }
-    
+
     return false;
 }
 
 std::vector<std::pair<int, int>> Board::getValidMoves(CellState player) const {
     std::vector<std::pair<int, int>> moves;
-    
+
     for (int row = 0; row < BOARD_SIZE; ++row) {
         for (int col = 0; col < BOARD_SIZE; ++col) {
             if (isValidMove(row, col, player)) {
@@ -126,20 +125,20 @@ std::vector<std::pair<int, int>> Board::getValidMoves(CellState player) const {
             }
         }
     }
-    
+
     return moves;
 }
 
 std::vector<std::pair<int, int>> Board::getFlippedDiscs(int row, int col, CellState player) const {
     std::vector<std::pair<int, int>> flipped;
-    
+
     for (int dir = 0; dir < 8; ++dir) {
         if (checkDirection(row, col, static_cast<Direction>(dir), player)) {
             auto discs = getDiscsInDirection(row, col, static_cast<Direction>(dir), player);
             flipped.insert(flipped.end(), discs.begin(), discs.end());
         }
     }
-    
+
     return flipped;
 }
 
@@ -147,16 +146,16 @@ bool Board::makeMove(int row, int col, CellState player) {
     if (!isValidMove(row, col, player)) {
         return false;
     }
-    
+
     // Place the disc
     grid[row][col] = player;
-    
+
     // Flip opponent discs
     auto flipped = getFlippedDiscs(row, col, player);
     for (const auto& [fRow, fCol] : flipped) {
         grid[fRow][fCol] = player;
     }
-    
+
     return true;
 }
 

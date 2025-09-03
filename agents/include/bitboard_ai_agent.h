@@ -66,7 +66,7 @@ private:
                                               bool isBlack) const;
 
     // Quiescence search placeholder (not implemented yet)
-    double quiescenceSearch(BitBoard& bitboard, double alpha, double beta,
-                            bool isBlack, std::chrono::steady_clock::time_point startTime,
-                            std::chrono::milliseconds timeLimit) const { return 0.0; }
+    // double quiescenceSearch(BitBoard& bitboard, double alpha, double beta,
+    //                         bool isBlack, std::chrono::steady_clock::time_point startTime,
+    //                         std::chrono::milliseconds timeLimit) const { return 0.0; }
 };

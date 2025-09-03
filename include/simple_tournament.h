@@ -9,7 +9,6 @@
 #include <map>
 #include <functional>
 
-// Game result for a single match
 struct GameResult {
     std::string blackAgent;
     std::string whiteAgent;
@@ -23,7 +22,7 @@ struct GameResult {
     bool whiteTimedOut;
     bool blackCrashed;
     bool whiteCrashed;
-    
+
     GameResult() : blackScore(0), whiteScore(0), moveCount(0), 
                    gameDuration(0), blackTimedOut(false), whiteTimedOut(false),
                    blackCrashed(false), whiteCrashed(false) {}
@@ -43,12 +42,12 @@ struct AgentStats {
     double winRate;
     double averageScore;
     double averageScoreAgainst;
-    
+
     // Head-to-head records
     std::map<std::string, int> winsAgainst;
     std::map<std::string, int> lossesAgainst;
     std::map<std::string, int> drawsAgainst;
-    
+
     AgentStats() : gamesPlayed(0), wins(0), losses(0), draws(0), 
                    timeouts(0), crashes(0), totalScore(0), totalScoreAgainst(0),
                    winRate(0.0), averageScore(0.0), averageScoreAgainst(0.0) {}
@@ -56,13 +55,13 @@ struct AgentStats {
 
 // Tournament configuration
 struct TournamentConfig {
-    std::chrono::milliseconds timeLimit{5000};  // 5 seconds per move
-    int roundsPerMatchup{1};  // How many games each pair plays
+    std::chrono::milliseconds timeLimit{5000};
+    int roundsPerMatchup{1};
     bool enableVisualFeedback{true};
     bool logGames{true};
     std::string logFile{"tournament.log"};
     std::string tournamentType{"round_robin"}; // planned: swiss, knockout, etc.
-    
+
     TournamentConfig() = default;
     TournamentConfig(std::chrono::milliseconds limit, int rounds = 1) 
         : timeLimit(limit), roundsPerMatchup(rounds) {}
@@ -75,36 +74,36 @@ class SimpleTournament {
 public:
     SimpleTournament();
     ~SimpleTournament() = default;
-    
+
     // Configuration
     void setConfig(const TournamentConfig& config) { config_ = config; }
     const TournamentConfig& getConfig() const { return config_; }
-    
+
     // Agent management
     void addAgent(std::unique_ptr<AIAgentBase> agent);
     void addAgent(const std::string& type, const std::string& name = "");
     void clearAgents();
-    
+
     // Progress monitoring
     void setProgressCallback(ProgressCallback callback) { progressCallback_ = callback; }
-    
+
     // Tournament execution
     void runRoundRobin();
-    
+
     // Results and statistics
     const std::vector<GameResult>& getGameResults() const { return gameResults_; }
     const std::map<std::string, AgentStats>& getAgentStats() const { return agentStats_; }
     std::vector<AgentStats> getRankedResults() const;
-    
+
     // Agent information
     std::vector<std::string> getAgentNames() const;
-    
+
     // Utility functions
     void printResults() const;
     void saveResults(const std::string& filename) const;
     void saveResultsJson(const std::string& filename) const;
     void resetTournament();
-    
+
     // Individual game for testing
     GameResult playSingleGame(AIAgentBase* blackAgent, AIAgentBase* whiteAgent);
 
@@ -114,12 +113,12 @@ private:
     std::map<std::string, AgentStats> agentStats_;
     TournamentConfig config_;
     ProgressCallback progressCallback_;
-    
+
     // Internal methods
     void updateStats(const GameResult& result);
     void printProgress(int current, int total, const std::string& currentMatch) const;
     std::string formatDuration(std::chrono::milliseconds duration) const;
-    
+
     // Safety wrapper for agent moves
     std::pair<int, int> getSafeMove(AIAgentBase* agent, const Board& board, 
                                    CellState player, const std::string& agentName,

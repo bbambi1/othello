@@ -33,11 +33,11 @@ void printVersion() {
 
 int main(int argc, char* argv[]) {
     std::string interface = "gui"; // Default to GUI for this executable
-    
+
     // Parse command line arguments
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
-        
+
         if (arg == "--help" || arg == "-h") {
             printUsage(argv[0]);
             return 0;
@@ -57,7 +57,7 @@ int main(int argc, char* argv[]) {
             return 1;
         }
     }
-    
+
     try {
 #ifdef USE_SFML
         if (interface == "gui") {
@@ -76,6 +76,6 @@ int main(int argc, char* argv[]) {
         std::cerr << "Unknown error occurred" << std::endl;
         return 1;
     }
-    
+
     return 0;
 }
