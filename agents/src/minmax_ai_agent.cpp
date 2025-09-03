@@ -3,7 +3,6 @@
 #include <limits>
 #include <chrono>
 
-// MinMax AI Agent Implementation
 MinMaxAIAgent::MinMaxAIAgent(const std::string& name, const std::string& author, int depth) 
     : AIAgentBase(name, author), maxDepth(depth) {
 }
@@ -14,16 +13,14 @@ std::pair<int, int> MinMaxAIAgent::getBestMove(const Board& board, CellState pla
     
     auto validMoves = getValidMoves(board, player);
     if (validMoves.empty()) {
-        return {-1, -1}; // No valid moves
+        return {-1, -1};
     }
     
     std::pair<int, int> bestMove = validMoves[0];
     double bestScore = std::numeric_limits<double>::lowest();
     
     for (const auto& move : validMoves) {
-        // Check time before processing each move
         if (isTimeUp(startTime, timeLimit)) {
-            // Return current best move if time is up
             break;
         }
         
@@ -48,9 +45,7 @@ double MinMaxAIAgent::minMax(Board& board, int depth, double alpha, double beta,
                             CellState player, bool isMaximizing,
                             std::chrono::steady_clock::time_point startTime,
                             std::chrono::milliseconds timeLimit) {
-    // Check time at the beginning of each recursive call
     if (isTimeUp(startTime, timeLimit)) {
-        // Return a neutral evaluation if time is up
         return 0.0;
     }
     
@@ -66,7 +61,6 @@ double MinMaxAIAgent::minMax(Board& board, int depth, double alpha, double beta,
     if (isMaximizing) {
         double maxScore = std::numeric_limits<double>::lowest();
         for (const auto& move : validMoves) {
-            // Check time before processing each move
             if (isTimeUp(startTime, timeLimit)) {
                 break;
             }
@@ -83,7 +77,6 @@ double MinMaxAIAgent::minMax(Board& board, int depth, double alpha, double beta,
     } else {
         double minScore = std::numeric_limits<double>::max();
         for (const auto& move : validMoves) {
-            // Check time before processing each move
             if (isTimeUp(startTime, timeLimit)) {
                 break;
             }
@@ -103,7 +96,6 @@ double MinMaxAIAgent::minMax(Board& board, int depth, double alpha, double beta,
 double MinMaxAIAgent::evaluateBoard(const Board& board, CellState player) const {
     double score = 0.0;
     
-    // Use internal evaluation methods with MinMax-specific weights
     score += evaluateCornerControl(board, player);
     score += evaluateEdgeControl(board, player);
     score += evaluateMobility(board, player);
@@ -113,7 +105,6 @@ double MinMaxAIAgent::evaluateBoard(const Board& board, CellState player) const 
     return score;
 }
 
-// Internal evaluation methods with MinMax-specific weights
 double MinMaxAIAgent::evaluateCornerControl(const Board& board, CellState player) const {
     static const std::vector<std::pair<int, int>> corners = {
         {0, 0}, {0, 7}, {7, 0}, {7, 7}
@@ -123,7 +114,7 @@ double MinMaxAIAgent::evaluateCornerControl(const Board& board, CellState player
     for (const auto& corner : corners) {
         CellState cellState = board.getCell(corner.first, corner.second);
         if (cellState == player) {
-            score += 25.0; // Corner is very valuable
+            score += 25.0;
         } else if (cellState == getOpponent(player)) {
             score -= 25.0;
         }
@@ -134,7 +125,6 @@ double MinMaxAIAgent::evaluateCornerControl(const Board& board, CellState player
 double MinMaxAIAgent::evaluateEdgeControl(const Board& board, CellState player) const {
     double score = 0.0;
     
-    // Evaluate edges (excluding corners) with MinMax weight
     for (int i = 1; i < 7; ++i) {
         // Top edge
         if (board.getCell(0, i) == player) score += 5.0;
@@ -162,7 +152,6 @@ double MinMaxAIAgent::evaluateMobility(const Board& board, CellState player) con
     
     if (playerMoves + opponentMoves == 0) return 0.0;
     
-    // Apply MinMax mobility weight
     return static_cast<double>(playerMoves - opponentMoves) / (playerMoves + opponentMoves) * 15.0;
 }
 
@@ -173,18 +162,15 @@ double MinMaxAIAgent::evaluateDiscCount(const Board& board, CellState player) co
     
     if (totalDiscs == 0) return 0.0;
     
-    // Apply MinMax disc count weight
     return static_cast<double>(playerDiscs - opponentDiscs) / totalDiscs * 5.0;
 }
 
 double MinMaxAIAgent::evaluateStability(const Board& board, CellState player) const {
-    // Simple stability evaluation based on corner adjacency with MinMax weight
     double score = 0.0;
     
     for (int row = 0; row < 8; ++row) {
         for (int col = 0; col < 8; ++col) {
             if (board.getCell(row, col) == player) {
-                // Check if disc is adjacent to corners (less stable)
                 bool adjacentToCorner = false;
                 for (int dr = -1; dr <= 1; ++dr) {
                     for (int dc = -1; dc <= 1; ++dc) {
@@ -201,17 +187,15 @@ double MinMaxAIAgent::evaluateStability(const Board& board, CellState player) co
                 }
                 
                 if (adjacentToCorner) {
-                    score -= 2.0; // Less stable
+                    score -= 2.0;
                 } else {
-                    score += 1.0; // More stable
+                    score += 1.0;
                 }
             }
         }
     }
     
-    // Apply MinMax stability weight
     return score * 10.0;
 }
 
-// Register the AI agent
 REGISTER_AI_AGENT(MinMaxAIAgent, "minmax")

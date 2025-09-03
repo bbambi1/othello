@@ -4,7 +4,6 @@
 #include <chrono>
 #include <random>
 
-// Definitions for static position value tables
 const std::array<std::array<int,8>,8> BitBoardAIAgent::POSITION_VALUES = {{
     {{100, -20, 10, 5, 5, 10, -20, 100}},
     {{-20, -50, -2, -2, -2, -2, -50, -20}},
@@ -29,9 +28,6 @@ const std::array<std::array<int,8>,8> BitBoardAIAgent::LATE_GAME_VALUES = {{
     {{100, 50, 30, 20, 20, 30, 50, 100}}
 }};
 
-// Implementation inline for brevity; larger projects would separate
-// definitions into a corresponding .cpp file.
-
 inline BitBoardAIAgent::BitBoardAIAgent(const std::string& name,
                                          const std::string& author,
                                          int depth)
@@ -41,7 +37,6 @@ inline std::pair<int,int> BitBoardAIAgent::getBestMove(const Board& board, CellS
                                                        std::chrono::milliseconds timeLimit) {
     auto startTime = std::chrono::steady_clock::now();
     BitBoard bitboard;
-    // Populate bitboard from Board
     for (int row = 0; row < 8; ++row) {
         for (int col = 0; col < 8; ++col) {
             CellState cell = board.getCell(row, col);
@@ -267,19 +262,15 @@ inline std::vector<std::pair<int,int>> BitBoardAIAgent::orderMoves(const BitBoar
     std::vector<std::pair<std::pair<int,int>,double>> moveScores;
     for (const auto& mv : moves) {
         double score = 0.0;
-        // Corner priority
         if ((mv.first == 0 || mv.first == 7) && (mv.second == 0 || mv.second == 7)) score += 1000.0;
-        // Corner adjacency penalty
         else if (((mv.first == 0 || mv.first == 7) && (mv.second == 1 || mv.second == 6)) ||
                  ((mv.first == 1 || mv.first == 6) && (mv.second == 0 || mv.second == 7))) score -= 500.0;
-        // Edge bonus
         else if (mv.first == 0 || mv.first == 7 || mv.second == 0 || mv.second == 7) score += 100.0;
-        // Estimate flips by disc count difference
         BitBoard tmp = bb;
         int before = bb.getScore(isBlack);
         if (tmp.makeMove(mv.first, mv.second, isBlack)) {
             int after = tmp.getScore(isBlack);
-            int flips = after - before - 1; // subtract the placed disc
+            int flips = after - before - 1;
             if (flips > 0) score += flips * 10.0;
         }
         moveScores.emplace_back(mv, score);
@@ -291,5 +282,4 @@ inline std::vector<std::pair<int,int>> BitBoardAIAgent::orderMoves(const BitBoar
     return ordered;
 }
 
-// Register the AI agent
 REGISTER_AI_AGENT(BitBoardAIAgent, "bitboard")

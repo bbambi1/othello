@@ -3,11 +3,10 @@
 #include "ai_agent_base.h"
 #include <chrono>
 
-// MinMax AI agent with alpha-beta pruning - the original AI from the project
-// Author: Tournament System Example
+// MinMax AI agent with alpha-beta pruning
 class MinMaxAIAgent : public AIAgentBase {
 public:
-    MinMaxAIAgent(const std::string& name = "MinMax", const std::string& author = "Tournament System Example", int maxDepth = 6);
+    MinMaxAIAgent(const std::string& name = "MinMax", const std::string& author = "System", int maxDepth = 6);
     std::pair<int, int> getBestMove(const Board& board, CellState player, 
                                    std::chrono::milliseconds timeLimit = std::chrono::milliseconds(1000)) override;
     
