@@ -18,12 +18,11 @@
 TournamentConsole::TournamentConsole() {
     initializeAvailableAgents();
 
-    // Set default configuration
     auto config = tournament_.getConfig();
-    config.timeLimit = std::chrono::milliseconds(1000);  // 1 second default
-    config.roundsPerMatchup = 3;  // 3 rounds default
-    config.enableVisualFeedback = true;  // Always enable
-    config.logGames = true;  // Always enable
+    config.timeLimit = std::chrono::milliseconds(1000);
+    config.roundsPerMatchup = 3;
+    config.enableVisualFeedback = true;
+    config.logGames = true;
     config.tournamentType = "round_robin";
     tournament_.setConfig(config);
 }
@@ -35,22 +34,16 @@ void TournamentConsole::run() {
         std::cout << "========================" << std::endl;
         std::cout << std::endl;
 
-        // 1) Select tournament type
         configureTournamentType();
 
-        // 2) Set time limit per move
         configureTimeLimit();
 
-        // 3) Set number of rounds
         configureRounds();
 
-        // 4) Auto-include all available agents
         setupAllAgents();
 
-        // 5) Run tournament with auto-save
         runTournament();
 
-        // 6) Auto-save results as JSON
         saveResultsJson();
 
         if (!getYesNoInput("Run another tournament? (y/n): ")) {
@@ -62,10 +55,6 @@ void TournamentConsole::run() {
 
 void TournamentConsole::showMainMenu() {
     clearScreen();
-    std::cout << "Othello Tournament System" << std::endl;
-    std::cout << "=========================" << std::endl;
-    std::cout << std::endl;
-
     displayCurrentConfiguration();
 
     std::cout << std::endl;
@@ -150,7 +139,6 @@ void TournamentConsole::configureAgents() {
                 break;
             }
             case 2: {
-                // Remove agent functionality would go here
                 std::cout << "Remove agent functionality not implemented yet." << std::endl;
                 waitForKeyPress();
                 break;
@@ -272,7 +260,7 @@ void TournamentConsole::configureRounds() {
     if (!input.empty()) {
         try {
             rounds = std::stoi(input);
-            if (rounds < 1 || rounds > 10) {
+            if (rounds < 1 || rounds > 100) {
                 std::cout << "   Invalid range, using default 3 rounds" << std::endl;
                 rounds = 3;
             }
@@ -488,15 +476,12 @@ void TournamentConsole::displayCurrentConfiguration() const {
     std::cout << "  Agents: " << agentNames.size() << std::endl;
     std::cout << "  Time Limit: " << config.timeLimit.count() << "ms" << std::endl;
     std::cout << "  Rounds per Matchup: " << config.roundsPerMatchup << std::endl;
-    std::cout << "  Visual Feedback: " << (config.enableVisualFeedback ? "Yes" : "No") << std::endl;
-    std::cout << "  Log Games: " << (config.logGames ? "Yes" : "No") << std::endl;
 }
 
 void TournamentConsole::displayAvailableAgents() const {
     std::cout << "Available Agent Types:" << std::endl;
     for (size_t i = 0; i < availableAgentTypes_.size(); ++i) {
         std::string displayName = availableAgentTypes_[i];
-        // Capitalize first letter for display
         if (!displayName.empty()) {
             displayName[0] = std::toupper(displayName[0]);
         }

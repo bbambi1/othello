@@ -17,7 +17,7 @@ make check-sfml
 # Install SFML if needed (Ubuntu/Debian)
 make install-sfml
 
-# Build both GUI and tournament systems
+# Build GUI, console and tournament systems
 make
 
 # Run the GUI game
@@ -30,10 +30,10 @@ make
 ./othello_tournament
 
 # Or build/run individually
-make build
+make build-gui
 make build-console
 make build-tournament
-make run
+make run-gui
 make run-console
 make run-tournament
 ```
@@ -79,11 +79,11 @@ brew install gcc make sfml
 # Clean build
 make clean
 
-# Build both GUI and tournament
+# Build GUI, console and tournament
 make
 
 # Build only GUI (requires SFML)
-make build
+make build-gui
 
 # Build only console game (no SFML required)
 make build-console

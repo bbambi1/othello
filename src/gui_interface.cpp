@@ -149,17 +149,11 @@ void GUIInterface::selectGameMode() {
         }
     }
 
-    // For AI modes, select AI agents before initializing the game
     if (currentMode == GUIGameMode::HUMAN_VS_AI || currentMode == GUIGameMode::AI_VS_AI) {
-        std::cout << "About to select AI agent for mode: " << static_cast<int>(currentMode) << std::endl;
         selectAIAgent();
-        std::cout << "AI agent selection completed. Selected: " << static_cast<int>(selectedAIAgent) << std::endl;
 
-        // For AI vs AI mode, also select opponent AI
         if (currentMode == GUIGameMode::AI_VS_AI) {
-            std::cout << "About to select opponent AI agent" << std::endl;
             selectOpponentAIAgent();
-            std::cout << "Opponent AI agent selection completed. Selected: " << static_cast<int>(selectedOpponentAIAgent) << std::endl;
         }
     }
 
@@ -168,8 +162,6 @@ void GUIInterface::selectGameMode() {
 
 void GUIInterface::selectAIAgent() {
     bool agentSelected = false;
-
-    std::cout << "Entering AI agent selection screen..." << std::endl;
 
     while (!agentSelected && window.isOpen()) {
         handleEvents();
@@ -237,26 +229,21 @@ void GUIInterface::selectAIAgent() {
             }
 
             if (event.type == sf::Event::KeyPressed) {
-                std::cout << "Key pressed: " << event.key.code << std::endl;
 
                 if (event.key.code == sf::Keyboard::A) {
                     selectedAIAgent = AIAgentType::RANDOM;
-                    std::cout << "Selected AI Agent: Random (A key)" << std::endl;
                     agentSelected = true;
                 } else if (event.key.code == sf::Keyboard::B) {
                     selectedAIAgent = AIAgentType::GREEDY;
-                    std::cout << "Selected AI Agent: Greedy (B key)" << std::endl;
                     agentSelected = true;
                 } else if (event.key.code == sf::Keyboard::C) {
                     selectedAIAgent = AIAgentType::MINMAX;
-                    std::cout << "Selected AI Agent: MinMax (C key)" << std::endl;
                     agentSelected = true;
                 } else if (event.key.code == sf::Keyboard::D) {
                     selectedAIAgent = AIAgentType::BITBOARD;
-                    std::cout << "Selected AI Agent: BitBoard (D key)" << std::endl;
                     agentSelected = true;
                 } else {
-                    std::cout << "Unknown key pressed: " << event.key.code << std::endl;
+                    std::cout << std::endl;
                 }
             }
         }
@@ -265,8 +252,6 @@ void GUIInterface::selectAIAgent() {
 
 void GUIInterface::selectOpponentAIAgent() {
     bool agentSelected = false;
-
-    std::cout << "Entering opponent AI agent selection screen..." << std::endl;
 
     while (!agentSelected && window.isOpen()) {
         handleEvents();
@@ -330,26 +315,21 @@ void GUIInterface::selectOpponentAIAgent() {
             }
 
             if (event.type == sf::Event::KeyPressed) {
-                std::cout << "Opponent AI - Key pressed: " << event.key.code << std::endl;
 
                 if (event.key.code == sf::Keyboard::A) {
                     selectedOpponentAIAgent = AIAgentType::RANDOM;
-                    std::cout << "Selected Opponent AI Agent: Random (A key)" << std::endl;
                     agentSelected = true;
                 } else if (event.key.code == sf::Keyboard::B) {
                     selectedOpponentAIAgent = AIAgentType::GREEDY;
-                    std::cout << "Selected Opponent AI Agent: Greedy (B key)" << std::endl;
                     agentSelected = true;
                 } else if (event.key.code == sf::Keyboard::C) {
                     selectedOpponentAIAgent = AIAgentType::MINMAX;
-                    std::cout << "Selected Opponent AI Agent: MinMax (C key)" << std::endl;
                     agentSelected = true;
                 } else if (event.key.code == sf::Keyboard::D) {
                     selectedOpponentAIAgent = AIAgentType::BITBOARD;
-                    std::cout << "Selected Opponent AI Agent: BitBoard (D key)" << std::endl;
                     agentSelected = true;
                 } else {
-                    std::cout << "Opponent AI - Unknown key pressed: " << event.key.code << std::endl;
+                    std::cout << std::endl;
                 }
             }
         }
@@ -362,19 +342,9 @@ void GUIInterface::initializeGame() {
     gameRunning = true;
     gamePaused = false;
 
-    std::cout << "Initializing game in mode: ";
-    switch (currentMode) {
-        case GUIGameMode::HUMAN_VS_HUMAN: std::cout << "Human vs Human"; break;
-        case GUIGameMode::HUMAN_VS_AI: std::cout << "Human vs AI"; break;
-        case GUIGameMode::AI_VS_AI: std::cout << "AI vs AI"; break;
-
-    }
-    std::cout << std::endl;
 
     if (currentMode == GUIGameMode::HUMAN_VS_AI || 
         currentMode == GUIGameMode::AI_VS_AI) {
-        // Create AI agents based on selections made earlier
-        std::cout << "Creating AI agent with selection: " << static_cast<int>(selectedAIAgent) << std::endl;
         std::string agentType = "";
         switch (selectedAIAgent) {
             case AIAgentType::RANDOM: agentType = "random"; break;
@@ -382,17 +352,13 @@ void GUIInterface::initializeGame() {
             case AIAgentType::MINMAX: agentType = "minmax"; break;
             case AIAgentType::BITBOARD: agentType = "bitboard"; break;
         }
-        std::cout << "Agent type string: " << agentType << std::endl;
         aiAgent = createAIAgent(agentType, getAIAgentTypeString(selectedAIAgent));
         if (aiAgent) {
-            std::cout << "AI Agent created: " << aiAgent->getName() << std::endl;
         } else {
             std::cout << "Failed to create AI Agent" << std::endl;
         }
 
-        // For AI vs AI mode, also create opponent AI
         if (currentMode == GUIGameMode::AI_VS_AI) {
-            std::cout << "Creating opponent AI agent with selection: " << static_cast<int>(selectedOpponentAIAgent) << std::endl;
             std::string opponentAgentType = "";
             switch (selectedOpponentAIAgent) {
                 case AIAgentType::RANDOM: opponentAgentType = "random"; break;
@@ -400,10 +366,8 @@ void GUIInterface::initializeGame() {
                 case AIAgentType::MINMAX: opponentAgentType = "minmax"; break;
                 case AIAgentType::BITBOARD: opponentAgentType = "bitboard"; break;
             }
-            std::cout << "Opponent agent type string: " << opponentAgentType << std::endl;
             opponentAIAgent = createAIAgent(opponentAgentType, getAIAgentTypeString(selectedOpponentAIAgent));
             if (opponentAIAgent) {
-                std::cout << "Opponent AI Agent created: " << opponentAIAgent->getName() << std::endl;
             } else {
                 std::cout << "Failed to create Opponent AI Agent" << std::endl;
             }

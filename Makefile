@@ -77,7 +77,7 @@ install-sfml:
 	sudo apt-get install -y libsfml-dev
 
 # Run the GUI game
-run: $(TARGET_GUI)
+run-gui: $(TARGET_GUI)
 	./$(TARGET_GUI)
 
 # Run the tournament
@@ -89,7 +89,7 @@ run-console: $(TARGET_CONSOLE)
 	./$(TARGET_CONSOLE)
 
 # Build GUI version
-build: $(TARGET_GUI)
+build-gui: $(TARGET_GUI)
 
 # Build tournament version
 build-tournament: $(TARGET_TOURNAMENT)
