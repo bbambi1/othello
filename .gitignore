@@ -15,6 +15,7 @@
 # Executables
 othello_gui
 othello_tournament
+othello_console
 
 # Object files
 src/*.o
