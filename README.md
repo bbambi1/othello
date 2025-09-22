@@ -23,17 +23,26 @@ make
 # Run the GUI game
 ./othello_gui
 
+# Run the console game (for individual games and AI testing)
+./othello_console
+
 # Run the tournament system (console-based)
 ./othello_tournament
 
 # Or build/run individually
+make build
+make build-console
 make build-tournament
+make run
+make run-console
 make run-tournament
 ```
 
 ## How to Use
 
 ### Playing Individual Games
+
+#### GUI Version
 1. Run `./othello_gui`
 2. Choose game mode:
    - **Human vs Human**: Two human players
@@ -41,6 +50,15 @@ make run-tournament
    - **AI vs AI**: Two AI agents play each other
 3. Click on valid board positions to make moves
 4. The game automatically highlights valid moves and shows current scores
+
+#### Console Version (Perfect for AI Testing)
+1. Run `./othello_console`
+2. Choose game mode:
+   - **Human vs Human**: Two human players
+   - **Human vs AI**: Human plays against selected AI
+   - **AI vs AI**: Two AI agents play each other
+3. Enter moves in format A1, B2, etc. (column letter, row number)
+4. Configure AI settings (time limits, thinking display, auto-play)
 
 ## Building from Source
 
@@ -67,8 +85,14 @@ make
 # Build only GUI (requires SFML)
 make build
 
+# Build only console game (no SFML required)
+make build-console
+
 # Build only tournament (no SFML required)
 make build-tournament
+
+# Run console game
+make run-console
 
 # Run tournament
 make run-tournament

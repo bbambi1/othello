@@ -661,7 +661,6 @@ void GUIInterface::animateMove(int /*row*/, int /*col*/, CellState /*player*/) {
 
 void GUIInterface::showGameOver() {
     gameRunning = false;
-    // Game over rendering is handled in render()
 }
 
 std::string GUIInterface::getPlayerName(CellState player) const {
@@ -675,20 +674,16 @@ sf::Color GUIInterface::getPlayerColor(CellState player) const {
 void GUIInterface::switchPlayer() {
     currentPlayer = (currentPlayer == CellState::BLACK) ? CellState::WHITE : CellState::BLACK;
 
-    // Check if current player has valid moves
     if (!board.hasValidMoves(currentPlayer)) {
         if (!board.hasValidMoves((currentPlayer == CellState::BLACK) ? CellState::WHITE : CellState::BLACK)) {
-            // No valid moves for either player - game over
             showGameOver();
         } else {
-            // Pass turn
             handlePass();
         }
     }
 }
 
 void GUIInterface::handlePass() {
-    // Could add visual indication that turn was passed
     switchPlayer();
 }
 
@@ -725,85 +720,59 @@ void GUIInterface::playAIVsAI() {
 }
 
 void GUIInterface::processTurn() {
-    // Only process AI moves if it's an AI's turn
     if (currentMode == GUIGameMode::HUMAN_VS_HUMAN) {
-        return; // Human vs Human mode - no AI processing needed
+        return;
     }
-    
-    // If AI just moved, wait a bit before processing again
+
     if (aiJustMoved) {
         static auto lastMoveTime = std::chrono::steady_clock::now();
         auto now = std::chrono::steady_clock::now();
         auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - lastMoveTime);
-        
+
         if (elapsed.count() < aiMoveDelay) {
-            return; // Wait for the delay to complete
+            return;
         }
         aiJustMoved = false;
-        std::cout << "AI delay completed, ready for next move" << std::endl;
     }
-    
-    // Check if current player has valid moves
+
     if (!board.hasValidMoves(currentPlayer)) {
         if (!board.hasValidMoves((currentPlayer == CellState::BLACK) ? CellState::WHITE : CellState::BLACK)) {
-            // No valid moves for either player - game over
             showGameOver();
             return;
         } else {
-            // Pass turn
-            std::cout << getPlayerName(currentPlayer) << " has no valid moves, passing turn" << std::endl;
             handlePass();
             return;
         }
     }
-    
-    // Handle AI moves
+
     if (currentMode == GUIGameMode::AI_VS_AI || 
         (currentMode == GUIGameMode::HUMAN_VS_AI && currentPlayer == CellState::WHITE)) {
-        
-        std::cout << "Processing AI turn for " << getPlayerName(currentPlayer) << std::endl;
-        
-        // Determine which AI agent to use based on current player and game mode
+
         AIAgentBase* currentAIAgent = nullptr;
         if (currentMode == GUIGameMode::AI_VS_AI) {
-            // In AI vs AI mode, use different agents for each player
             currentAIAgent = (currentPlayer == CellState::BLACK) ? aiAgent.get() : opponentAIAgent.get();
         } else {
-            // In Human vs AI mode, always use the selected AI agent
             currentAIAgent = aiAgent.get();
         }
-        
+
         if (currentAIAgent && board.hasValidMoves(currentPlayer)) {
-            std::cout << "AI (" << getPlayerName(currentPlayer) << ") thinking..." << std::endl;
             auto start = std::chrono::steady_clock::now();
-            // Set a 1 second time limit for AI moves
             auto move = currentAIAgent->getBestMove(board, currentPlayer, std::chrono::milliseconds(1000));
             auto end = std::chrono::steady_clock::now();
-            
+
             auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-            std::cout << "AI move: (" << move.first << ", " << move.second << ") in " << duration.count() << "ms" << std::endl;
-            
+
             if (board.isValidMove(move.first, move.second, currentPlayer)) {
                 board.makeMove(move.first, move.second, currentPlayer);
-                std::cout << "AI made valid move at (" << move.first << ", " << move.second << ")" << std::endl;
                 animateMove(move.first, move.second, currentPlayer);
-                
-                // Set flag to prevent rapid moves
+
                 aiJustMoved = true;
-                
+
                 switchPlayer();
             } else {
-                // Invalid move from AI - this shouldn't happen with proper AI
-                std::cerr << "AI returned invalid move: (" << move.first << ", " << move.second << ")" << std::endl;
                 switchPlayer();
             }
-        } else if (!currentAIAgent) {
-            std::cerr << "No AI agent available!" << std::endl;
-        } else {
-            std::cout << "AI has no valid moves available" << std::endl;
         }
-    } else {
-        std::cout << "Not AI's turn - current player: " << getPlayerName(currentPlayer) << std::endl;
     }
 }
 

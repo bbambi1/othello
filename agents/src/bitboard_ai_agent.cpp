@@ -28,9 +28,9 @@ const std::array<std::array<int,8>,8> BitBoardAIAgent::LATE_GAME_VALUES = {{
     {{100, 50, 30, 20, 20, 30, 50, 100}}
 }};
 
-inline BitBoardAIAgent::BitBoardAIAgent(const std::string& name,
-                                         const std::string& author,
-                                         int depth)
+BitBoardAIAgent::BitBoardAIAgent(const std::string& name,
+                                 const std::string& author,
+                                 int depth)
     : AIAgentBase(name, author), maxDepth(depth) {}
 
 inline std::pair<int,int> BitBoardAIAgent::getBestMove(const Board& board, CellState player,
