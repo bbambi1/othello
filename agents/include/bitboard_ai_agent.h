@@ -75,4 +75,8 @@ private:
   //                         bool isBlack, std::chrono::steady_clock::time_point
   //                         startTime, std::chrono::milliseconds timeLimit)
   //                         const { return 0.0; }
+protected:
+  bool isTimeUp(std::chrono::steady_clock::time_point startTime,
+                std::chrono::milliseconds timeLimit =
+                    std::chrono::milliseconds(1000)) const;
 };

@@ -26,4 +26,9 @@ private:
   double evaluateMobility(const Board &board, CellState player) const;
   double evaluateDiscCount(const Board &board, CellState player) const;
   double evaluateStability(const Board &board, CellState player) const;
+
+protected:
+  bool isTimeUp(std::chrono::steady_clock::time_point startTime,
+                std::chrono::milliseconds timeLimit =
+                    std::chrono::milliseconds(1000)) const;
 };

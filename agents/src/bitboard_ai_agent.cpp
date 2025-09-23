@@ -326,3 +326,11 @@ BitBoardAIAgent::orderMoves(const BitBoard &bb,
 }
 
 REGISTER_AI_AGENT(BitBoardAIAgent, "bitboard")
+
+bool BitBoardAIAgent::isTimeUp(std::chrono::steady_clock::time_point startTime,
+                               std::chrono::milliseconds timeLimit) const {
+  auto now = std::chrono::steady_clock::now();
+  auto elapsed =
+      std::chrono::duration_cast<std::chrono::milliseconds>(now - startTime);
+  return elapsed + std::chrono::milliseconds{3} >= timeLimit;
+}
