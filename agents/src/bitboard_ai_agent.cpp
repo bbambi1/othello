@@ -76,8 +76,13 @@ BitBoardAIAgent::bitboardMinMax(BitBoard &bitboard, int depth, double alpha,
                                 double beta, bool isBlack, bool isMaximizing,
                                 std::chrono::steady_clock::time_point startTime,
                                 std::chrono::milliseconds timeLimit) {
+  // Fail-soft timeout: return static evaluation, don't touch TT
   if (isTimeUp(startTime, timeLimit))
-    return 0.0;
+    return evaluateBitboard(bitboard, isBlack);
+  const double alphaOrig = alpha;
+  const double betaOrig = beta;
+  bool wroteTT = false;
+  bool interrupted = false;
   uint64_t hash = getZobristHash(bitboard, isMaximizing ? isBlack : !isBlack);
   auto it = transpositionTable.find(hash);
   if (it != transpositionTable.end() && it->second.depth >= depth) {
@@ -97,17 +102,33 @@ BitBoardAIAgent::bitboardMinMax(BitBoard &bitboard, int depth, double alpha,
   }
   if (depth == 0 || bitboard.isGameOver()) {
     double sc = evaluateBitboard(bitboard, isBlack);
-    if (transpositionTable.size() < MAX_TRANSPOSITION_SIZE) {
-      transpositionTable[hash] =
-          TranspositionEntry(hash, sc, depth, EntryType::EXACT);
+    // Depth-preferred replacement into TT (EXACT)
+    auto ttIt = transpositionTable.find(hash);
+    if (ttIt == transpositionTable.end()) {
+      if (transpositionTable.size() < MAX_TRANSPOSITION_SIZE) {
+        transpositionTable[hash] =
+            TranspositionEntry(hash, sc, depth, EntryType::EXACT);
+      } else {
+        // Replace a shallower entry if found quickly
+        for (auto victim = transpositionTable.begin();
+             victim != transpositionTable.end(); ++victim) {
+          if (victim->second.depth < depth) {
+            victim->second =
+                TranspositionEntry(hash, sc, depth, EntryType::EXACT);
+            break;
+          }
+        }
+      }
+    } else if (ttIt->second.depth <= depth) {
+      ttIt->second = TranspositionEntry(hash, sc, depth, EntryType::EXACT);
     }
     return sc;
   }
   bool sideToMoveBlack = (isMaximizing ? isBlack : !isBlack);
   auto moves = bitboard.getValidMoves(sideToMoveBlack);
   if (moves.empty()) {
-    // Pass: side-to-move flips, so hash must XOR side-to-move key via getZobristHash
-    double sc = bitboardMinMax(bitboard, depth - 1, alpha, beta, isBlack,
+    // Pass: keep depth, just flip side-to-move
+    double sc = bitboardMinMax(bitboard, depth, alpha, beta, isBlack,
                                !isMaximizing, startTime, timeLimit);
     return sc;
   }
@@ -116,8 +137,10 @@ BitBoardAIAgent::bitboardMinMax(BitBoard &bitboard, int depth, double alpha,
     double best = std::numeric_limits<double>::lowest();
     EntryType eType = EntryType::UPPER_BOUND;
     for (const auto &mv : moves) {
-      if (isTimeUp(startTime, timeLimit))
+      if (isTimeUp(startTime, timeLimit)) {
+        interrupted = true;
         break;
+      }
       BitBoard temp = bitboard;
       if (temp.makeMove(mv.first, mv.second, isBlack)) {
         double sc = bitboardMinMax(temp, depth - 1, alpha, beta, isBlack, false,
@@ -125,30 +148,67 @@ BitBoardAIAgent::bitboardMinMax(BitBoard &bitboard, int depth, double alpha,
         best = std::max(best, sc);
         alpha = std::max(alpha, sc);
         if (beta <= alpha) {
-          if (transpositionTable.size() < MAX_TRANSPOSITION_SIZE) {
-            transpositionTable[hash] =
-                TranspositionEntry(hash, best, depth, EntryType::UPPER_BOUND);
+          // Max node fail-high: LOWER_BOUND; store alpha (fail-hard policy)
+          // Depth-preferred replacement
+          auto ttIt = transpositionTable.find(hash);
+          if (ttIt == transpositionTable.end()) {
+            if (transpositionTable.size() < MAX_TRANSPOSITION_SIZE) {
+              transpositionTable[hash] = TranspositionEntry(
+                  hash, alpha, depth, EntryType::LOWER_BOUND);
+            } else {
+              for (auto victim = transpositionTable.begin();
+                   victim != transpositionTable.end(); ++victim) {
+                if (victim->second.depth < depth) {
+                  victim->second = TranspositionEntry(hash, alpha, depth,
+                                                      EntryType::LOWER_BOUND);
+                  break;
+                }
+              }
+            }
+          } else if (ttIt->second.depth <= depth) {
+            ttIt->second =
+                TranspositionEntry(hash, alpha, depth, EntryType::LOWER_BOUND);
           }
+          wroteTT = true;
           break;
         }
       }
     }
-    if (best <= alpha)
-      eType = EntryType::UPPER_BOUND;
-    else if (best >= beta)
-      eType = EntryType::LOWER_BOUND;
-    else
-      eType = EntryType::EXACT;
-    if (transpositionTable.size() < MAX_TRANSPOSITION_SIZE) {
-      transpositionTable[hash] = TranspositionEntry(hash, best, depth, eType);
+    if (!interrupted && !wroteTT) {
+      if (best <= alphaOrig)
+        eType = EntryType::UPPER_BOUND;
+      else if (best >= betaOrig)
+        eType = EntryType::LOWER_BOUND;
+      else
+        eType = EntryType::EXACT;
+      // Depth-preferred replacement
+      auto ttIt = transpositionTable.find(hash);
+      if (ttIt == transpositionTable.end()) {
+        if (transpositionTable.size() < MAX_TRANSPOSITION_SIZE) {
+          transpositionTable[hash] =
+              TranspositionEntry(hash, best, depth, eType);
+        } else {
+          for (auto victim = transpositionTable.begin();
+               victim != transpositionTable.end(); ++victim) {
+            if (victim->second.depth < depth) {
+              victim->second = TranspositionEntry(hash, best, depth, eType);
+              break;
+            }
+          }
+        }
+      } else if (ttIt->second.depth <= depth) {
+        ttIt->second = TranspositionEntry(hash, best, depth, eType);
+      }
     }
     return best;
   } else {
     double best = std::numeric_limits<double>::max();
     EntryType eType = EntryType::LOWER_BOUND;
     for (const auto &mv : moves) {
-      if (isTimeUp(startTime, timeLimit))
+      if (isTimeUp(startTime, timeLimit)) {
+        interrupted = true;
         break;
+      }
       BitBoard temp = bitboard;
       if (temp.makeMove(mv.first, mv.second, !isBlack)) {
         double sc = bitboardMinMax(temp, depth - 1, alpha, beta, isBlack, true,
@@ -156,22 +216,55 @@ BitBoardAIAgent::bitboardMinMax(BitBoard &bitboard, int depth, double alpha,
         best = std::min(best, sc);
         beta = std::min(beta, sc);
         if (beta <= alpha) {
-          if (transpositionTable.size() < MAX_TRANSPOSITION_SIZE) {
-            transpositionTable[hash] =
-                TranspositionEntry(hash, best, depth, EntryType::LOWER_BOUND);
+          // Min node fail-low: UPPER_BOUND; store beta (fail-hard policy)
+          auto ttIt = transpositionTable.find(hash);
+          if (ttIt == transpositionTable.end()) {
+            if (transpositionTable.size() < MAX_TRANSPOSITION_SIZE) {
+              transpositionTable[hash] =
+                  TranspositionEntry(hash, beta, depth, EntryType::UPPER_BOUND);
+            } else {
+              for (auto victim = transpositionTable.begin();
+                   victim != transpositionTable.end(); ++victim) {
+                if (victim->second.depth < depth) {
+                  victim->second = TranspositionEntry(hash, beta, depth,
+                                                      EntryType::UPPER_BOUND);
+                  break;
+                }
+              }
+            }
+          } else if (ttIt->second.depth <= depth) {
+            ttIt->second =
+                TranspositionEntry(hash, beta, depth, EntryType::UPPER_BOUND);
           }
+          wroteTT = true;
           break;
         }
       }
     }
-    if (best <= alpha)
-      eType = EntryType::UPPER_BOUND;
-    else if (best >= beta)
-      eType = EntryType::LOWER_BOUND;
-    else
-      eType = EntryType::EXACT;
-    if (transpositionTable.size() < MAX_TRANSPOSITION_SIZE) {
-      transpositionTable[hash] = TranspositionEntry(hash, best, depth, eType);
+    if (!interrupted && !wroteTT) {
+      if (best <= alphaOrig)
+        eType = EntryType::UPPER_BOUND;
+      else if (best >= betaOrig)
+        eType = EntryType::LOWER_BOUND;
+      else
+        eType = EntryType::EXACT;
+      auto ttIt = transpositionTable.find(hash);
+      if (ttIt == transpositionTable.end()) {
+        if (transpositionTable.size() < MAX_TRANSPOSITION_SIZE) {
+          transpositionTable[hash] =
+              TranspositionEntry(hash, best, depth, eType);
+        } else {
+          for (auto victim = transpositionTable.begin();
+               victim != transpositionTable.end(); ++victim) {
+            if (victim->second.depth < depth) {
+              victim->second = TranspositionEntry(hash, best, depth, eType);
+              break;
+            }
+          }
+        }
+      } else if (ttIt->second.depth <= depth) {
+        ttIt->second = TranspositionEntry(hash, best, depth, eType);
+      }
     }
     return best;
   }
@@ -272,7 +365,8 @@ inline double BitBoardAIAgent::evaluateDiscCountBitboard(const BitBoard &bb,
   return static_cast<double>(p - o) / t;
 }
 
-inline uint64_t BitBoardAIAgent::getZobristHash(const BitBoard &bb, bool blackToMove) const {
+inline uint64_t BitBoardAIAgent::getZobristHash(const BitBoard &bb,
+                                                bool blackToMove) const {
   return bb.getZobristHash(blackToMove);
 }
 

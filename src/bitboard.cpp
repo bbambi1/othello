@@ -73,8 +73,10 @@ void BitBoard::setCell(int row, int col, int state) {
   uint64_t mask = positionToMask(row, col);
   // Compute previous state before modifying boards
   int prevState = 0;
-  if (blackBoard & mask) prevState = 1;
-  else if (whiteBoard & mask) prevState = 2;
+  if (blackBoard & mask)
+    prevState = 1;
+  else if (whiteBoard & mask)
+    prevState = 2;
   // Remove previous from hash_
   if (prevState == 1) {
     hash_ ^= zobristTable[row][col][0];
@@ -365,6 +367,7 @@ uint64_t BitBoard::getZobristHash() const {
 
 uint64_t BitBoard::getZobristHash(bool blackToMove) const {
   uint64_t h = getZobristHash();
-  if (blackToMove) h ^= zobristBlackToMoveKey;
+  if (blackToMove)
+    h ^= zobristBlackToMoveKey;
   return h;
 }
