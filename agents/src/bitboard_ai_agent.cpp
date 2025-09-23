@@ -78,10 +78,10 @@ BitBoardAIAgent::getBestMove(const Board &board, CellState player,
         break;
       BitBoard temp = bitboard;
       if (temp.makeMove(mv.first, mv.second, isBlackTurn)) {
-        double score = bitboardMinMax(
-            temp, depth - 1, std::numeric_limits<double>::lowest(),
-            std::numeric_limits<double>::max(), isBlackTurn, false, startTime,
-            timeLimit);
+        double score = bitboardMinMax(temp, depth - 1,
+                                      std::numeric_limits<double>::lowest(),
+                                      std::numeric_limits<double>::max(),
+                                      isBlackTurn, false, startTime, timeLimit);
         if (score > iterationBestScore) {
           iterationBestScore = score;
           iterationBestMove = mv;

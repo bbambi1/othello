@@ -1,6 +1,7 @@
 #include "bitboard.h"
 #include <algorithm>
 #include <bitset>
+#include <cassert>
 
 std::array<std::array<std::array<uint64_t, 2>, 8>, 8> BitBoard::zobristTable;
 uint64_t BitBoard::zobristBlackToMoveKey = 0;
@@ -291,32 +292,35 @@ uint64_t BitBoard::shiftMask(uint64_t board, int dr, int dc) {
   return result;
 }
 
+static inline uint64_t splitmix64(uint64_t &x) {
+  uint64_t z = (x += 0x9e3779b97f4a7c15ULL);
+  z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9ULL;
+  z = (z ^ (z >> 27)) * 0x94d049bb133111ebULL;
+  return z ^ (z >> 31);
+}
+
 void BitBoard::initializeZobrist(uint64_t seed) {
-  std::call_once(zobristOnce, [seed]() {
-    std::mt19937_64 gen;
-    if (seed == 0) {
-      std::random_device rd;
-      gen.seed(rd());
-    } else {
-      gen.seed(seed);
-    }
-    std::uniform_int_distribution<uint64_t> dist;
+  static bool once = [&]() {
+    uint64_t s = (seed == 0) ? 0x0123456789ABCDEFULL : seed;
     for (int r = 0; r < 8; ++r) {
       for (int c = 0; c < 8; ++c) {
         for (int p = 0; p < 2; ++p) {
-          zobristTable[r][c][p] = dist(gen);
+          zobristTable[r][c][p] = splitmix64(s);
         }
       }
     }
-    zobristBlackToMoveKey = dist(gen);
+    zobristBlackToMoveKey = splitmix64(s);
     zobristInitialised = true;
-  });
+    return true;
+  }();
+  (void)once;
 }
 
 uint64_t BitBoard::getZobristKey(int row, int col, int player01) {
   if (!zobristInitialised) {
     initializeZobrist();
   }
+  assert(player01 == 0 || player01 == 1);
   return zobristTable[row][col][player01];
 }
 
@@ -328,6 +332,7 @@ uint64_t BitBoard::getZobristHash() const {
 }
 
 uint64_t BitBoard::getZobristHash(bool blackToMove) const {
+  const_cast<BitBoard *>(this)->initializeZobrist();
   uint64_t h = getZobristHash();
   if (blackToMove)
     h ^= zobristBlackToMoveKey;
