@@ -56,12 +56,23 @@ private:
     TranspositionEntry(uint64_t h, double s, int d, EntryType t)
         : hash(h), score(s), depth(d), type(t) {}
   };
-  mutable std::unordered_map<uint64_t, TranspositionEntry> transpositionTable;
-  static constexpr size_t MAX_TRANSPOSITION_SIZE = 4000000;
+  static constexpr size_t TT_WAYS = 4;
+  static constexpr size_t TT_NUM_BUCKETS = 1 << 20; // ~1M buckets
+  struct TTBucket {
+    TranspositionEntry entries[TT_WAYS];
+  };
+  mutable std::vector<TTBucket> transpositionTable;
+  static_assert(TT_WAYS >= 2, "TT must be at least 2-way associative");
 
   uint64_t getZobristHash(const BitBoard &bitboard, bool blackToMove) const;
   void clearTranspositionTable();
   size_t getTranspositionTableSize() const;
+
+  inline size_t ttBucketIndex(uint64_t hash) const {
+    return static_cast<size_t>(hash % TT_NUM_BUCKETS);
+  }
+  const TranspositionEntry *ttLookup(uint64_t hash, int requiredDepth) const;
+  void ttStore(uint64_t hash, double score, int depth, EntryType type) const;
 
   bool isBlackPlayer(CellState player) const;
   CellState playerFromBool(bool isBlack) const;

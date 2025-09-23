@@ -29,7 +29,8 @@ const std::array<std::array<int, 8>, 8> BitBoardAIAgent::LATE_GAME_VALUES = {
 
 BitBoardAIAgent::BitBoardAIAgent(const std::string &name,
                                  const std::string &author, int depth)
-    : AIAgentBase(name, author), maxDepth(depth) {}
+    : AIAgentBase(name, author), maxDepth(depth),
+      transpositionTable(TT_NUM_BUCKETS) {}
 
 inline std::pair<int, int>
 BitBoardAIAgent::getBestMove(const Board &board, CellState player,
@@ -83,40 +84,23 @@ BitBoardAIAgent::bitboardMinMax(BitBoard &bitboard, int depth, double alpha,
   bool wroteTT = false;
   bool interrupted = false;
   uint64_t hash = getZobristHash(bitboard, isMaximizing ? isBlack : !isBlack);
-  auto it = transpositionTable.find(hash);
-  if (it != transpositionTable.end() && it->second.depth >= depth) {
-    const auto &entry = it->second;
-    switch (entry.type) {
+  if (const TranspositionEntry *hit = ttLookup(hash, depth)) {
+    switch (hit->type) {
     case EntryType::EXACT:
-      return entry.score;
+      return hit->score;
     case EntryType::LOWER_BOUND:
-      if (entry.score >= beta)
-        return entry.score;
+      if (hit->score >= beta)
+        return hit->score;
       break;
     case EntryType::UPPER_BOUND:
-      if (entry.score <= alpha)
-        return entry.score;
+      if (hit->score <= alpha)
+        return hit->score;
       break;
     }
   }
   if (depth == 0 || bitboard.isGameOver()) {
     double sc = evaluateBitboard(bitboard, isBlack);
-    auto ttIt = transpositionTable.find(hash);
-    if (ttIt == transpositionTable.end()) {
-      if (transpositionTable.size() < MAX_TRANSPOSITION_SIZE) {
-        transpositionTable[hash] =
-            TranspositionEntry(hash, sc, depth, EntryType::EXACT);
-      } else {
-        auto victim = transpositionTable.begin();
-        if (victim != transpositionTable.end() &&
-            victim->second.depth < depth) {
-          victim->second =
-              TranspositionEntry(hash, sc, depth, EntryType::EXACT);
-        }
-      }
-    } else if (ttIt->second.depth <= depth) {
-      ttIt->second = TranspositionEntry(hash, sc, depth, EntryType::EXACT);
-    }
+    ttStore(hash, sc, depth, EntryType::EXACT);
     return sc;
   }
   bool sideToMoveBlack = (isMaximizing ? isBlack : !isBlack);
@@ -142,23 +126,7 @@ BitBoardAIAgent::bitboardMinMax(BitBoard &bitboard, int depth, double alpha,
         best = std::max(best, sc);
         alpha = std::max(alpha, sc);
         if (beta <= alpha) {
-          auto ttIt = transpositionTable.find(hash);
-          if (ttIt == transpositionTable.end()) {
-            if (transpositionTable.size() < MAX_TRANSPOSITION_SIZE) {
-              transpositionTable[hash] =
-                  TranspositionEntry(hash, best, depth, EntryType::LOWER_BOUND);
-            } else {
-              auto victim = transpositionTable.begin();
-              if (victim != transpositionTable.end() &&
-                  victim->second.depth < depth) {
-                victim->second = TranspositionEntry(hash, best, depth,
-                                                    EntryType::LOWER_BOUND);
-              }
-            }
-          } else if (ttIt->second.depth <= depth) {
-            ttIt->second =
-                TranspositionEntry(hash, best, depth, EntryType::LOWER_BOUND);
-          }
+          ttStore(hash, best, depth, EntryType::LOWER_BOUND);
           wroteTT = true;
           break;
         }
@@ -176,21 +144,7 @@ BitBoardAIAgent::bitboardMinMax(BitBoard &bitboard, int depth, double alpha,
         eType = EntryType::LOWER_BOUND;
       else
         eType = EntryType::EXACT;
-      auto ttIt = transpositionTable.find(hash);
-      if (ttIt == transpositionTable.end()) {
-        if (transpositionTable.size() < MAX_TRANSPOSITION_SIZE) {
-          transpositionTable[hash] =
-              TranspositionEntry(hash, best, depth, eType);
-        } else {
-          auto victim = transpositionTable.begin();
-          if (victim != transpositionTable.end() &&
-              victim->second.depth < depth) {
-            victim->second = TranspositionEntry(hash, best, depth, eType);
-          }
-        }
-      } else if (ttIt->second.depth <= depth) {
-        ttIt->second = TranspositionEntry(hash, best, depth, eType);
-      }
+      ttStore(hash, best, depth, eType);
     }
     return best;
   } else {
@@ -208,23 +162,7 @@ BitBoardAIAgent::bitboardMinMax(BitBoard &bitboard, int depth, double alpha,
         best = std::min(best, sc);
         beta = std::min(beta, sc);
         if (beta <= alpha) {
-          auto ttIt = transpositionTable.find(hash);
-          if (ttIt == transpositionTable.end()) {
-            if (transpositionTable.size() < MAX_TRANSPOSITION_SIZE) {
-              transpositionTable[hash] =
-                  TranspositionEntry(hash, best, depth, EntryType::UPPER_BOUND);
-            } else {
-              auto victim = transpositionTable.begin();
-              if (victim != transpositionTable.end() &&
-                  victim->second.depth < depth) {
-                victim->second = TranspositionEntry(hash, best, depth,
-                                                    EntryType::UPPER_BOUND);
-              }
-            }
-          } else if (ttIt->second.depth <= depth) {
-            ttIt->second =
-                TranspositionEntry(hash, best, depth, EntryType::UPPER_BOUND);
-          }
+          ttStore(hash, best, depth, EntryType::UPPER_BOUND);
           wroteTT = true;
           break;
         }
@@ -242,21 +180,7 @@ BitBoardAIAgent::bitboardMinMax(BitBoard &bitboard, int depth, double alpha,
         eType = EntryType::LOWER_BOUND;
       else
         eType = EntryType::EXACT;
-      auto ttIt = transpositionTable.find(hash);
-      if (ttIt == transpositionTable.end()) {
-        if (transpositionTable.size() < MAX_TRANSPOSITION_SIZE) {
-          transpositionTable[hash] =
-              TranspositionEntry(hash, best, depth, eType);
-        } else {
-          auto victim = transpositionTable.begin();
-          if (victim != transpositionTable.end() &&
-              victim->second.depth < depth) {
-            victim->second = TranspositionEntry(hash, best, depth, eType);
-          }
-        }
-      } else if (ttIt->second.depth <= depth) {
-        ttIt->second = TranspositionEntry(hash, best, depth, eType);
-      }
+      ttStore(hash, best, depth, eType);
     }
     return best;
   }
@@ -362,12 +286,67 @@ inline uint64_t BitBoardAIAgent::getZobristHash(const BitBoard &bb,
   return bb.getZobristHash(blackToMove);
 }
 
+const BitBoardAIAgent::TranspositionEntry *
+BitBoardAIAgent::ttLookup(uint64_t hash, int requiredDepth) const {
+  size_t idx = ttBucketIndex(hash);
+  const TTBucket &bucket = transpositionTable[idx];
+  for (size_t i = 0; i < TT_WAYS; ++i) {
+    const TranspositionEntry &e = bucket.entries[i];
+    if (e.hash == hash && e.depth >= requiredDepth) {
+      return &e;
+    }
+  }
+  return nullptr;
+}
+
+void BitBoardAIAgent::ttStore(uint64_t hash, double score, int depth,
+                              EntryType type) const {
+  size_t idx = ttBucketIndex(hash);
+  TTBucket &bucket = const_cast<TTBucket &>(transpositionTable[idx]);
+  for (size_t i = 0; i < TT_WAYS; ++i) {
+    TranspositionEntry &e = bucket.entries[i];
+    if (e.hash == hash) {
+      if (depth >= e.depth) {
+        e = TranspositionEntry(hash, score, depth, type);
+      }
+      return;
+    }
+  }
+  for (size_t i = 0; i < TT_WAYS; ++i) {
+    TranspositionEntry &e = bucket.entries[i];
+    if (e.hash == 0) {
+      e = TranspositionEntry(hash, score, depth, type);
+      return;
+    }
+  }
+  size_t victimIdx = 0;
+  int minDepth = bucket.entries[0].depth;
+  for (size_t i = 1; i < TT_WAYS; ++i) {
+    if (bucket.entries[i].depth < minDepth) {
+      minDepth = bucket.entries[i].depth;
+      victimIdx = i;
+    }
+  }
+  bucket.entries[victimIdx] = TranspositionEntry(hash, score, depth, type);
+}
+
 inline void BitBoardAIAgent::clearTranspositionTable() {
-  transpositionTable.clear();
+  for (auto &bucket : transpositionTable) {
+    for (size_t i = 0; i < TT_WAYS; ++i) {
+      bucket.entries[i] = TranspositionEntry();
+    }
+  }
 }
 
 inline size_t BitBoardAIAgent::getTranspositionTableSize() const {
-  return transpositionTable.size();
+  size_t count = 0;
+  for (const auto &bucket : transpositionTable) {
+    for (size_t i = 0; i < TT_WAYS; ++i) {
+      if (bucket.entries[i].hash != 0)
+        ++count;
+    }
+  }
+  return count;
 }
 
 inline bool BitBoardAIAgent::isBlackPlayer(CellState p) const {

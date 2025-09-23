@@ -55,21 +55,19 @@ struct AgentStats {
         averageScoreAgainst(0.0) {}
 };
 
-// Tournament configuration
 struct TournamentConfig {
   std::chrono::milliseconds timeLimit{5000};
   int roundsPerMatchup{1};
   bool enableVisualFeedback{true};
   bool logGames{true};
   std::string logFile{"tournament.log"};
-  std::string tournamentType{"round_robin"}; // planned: swiss, knockout, etc.
+  std::string tournamentType{"round_robin"};
 
   TournamentConfig() = default;
   TournamentConfig(std::chrono::milliseconds limit, int rounds = 1)
       : timeLimit(limit), roundsPerMatchup(rounds) {}
 };
 
-// Progress callback for visual feedback
 using ProgressCallback = std::function<void(int current, int total,
                                             const std::string &currentMatch)>;
 
@@ -78,40 +76,32 @@ public:
   SimpleTournament();
   ~SimpleTournament() = default;
 
-  // Configuration
   void setConfig(const TournamentConfig &config) { config_ = config; }
   const TournamentConfig &getConfig() const { return config_; }
 
-  // Agent management
   void addAgent(std::unique_ptr<AIAgentBase> agent);
   void addAgent(const std::string &type, const std::string &name = "");
   void clearAgents();
 
-  // Progress monitoring
   void setProgressCallback(ProgressCallback callback) {
     progressCallback_ = callback;
   }
 
-  // Tournament execution
   void runRoundRobin();
 
-  // Results and statistics
   const std::vector<GameResult> &getGameResults() const { return gameResults_; }
   const std::map<std::string, AgentStats> &getAgentStats() const {
     return agentStats_;
   }
   std::vector<AgentStats> getRankedResults() const;
 
-  // Agent information
   std::vector<std::string> getAgentNames() const;
 
-  // Utility functions
   void printResults() const;
   void saveResults(const std::string &filename) const;
   void saveResultsJson(const std::string &filename) const;
   void resetTournament();
 
-  // Individual game for testing
   GameResult playSingleGame(AIAgentBase *blackAgent, AIAgentBase *whiteAgent);
 
 private:
@@ -121,13 +111,11 @@ private:
   TournamentConfig config_;
   ProgressCallback progressCallback_;
 
-  // Internal methods
   void updateStats(const GameResult &result);
   void printProgress(int current, int total,
                      const std::string &currentMatch) const;
   std::string formatDuration(std::chrono::milliseconds duration) const;
 
-  // Safety wrapper for agent moves
   std::pair<int, int> getSafeMove(AIAgentBase *agent, const Board &board,
                                   CellState player,
                                   const std::string &agentName, bool &timedOut,
