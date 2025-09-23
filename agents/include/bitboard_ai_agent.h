@@ -57,7 +57,7 @@ private:
         : hash(h), score(s), depth(d), type(t) {}
   };
   mutable std::unordered_map<uint64_t, TranspositionEntry> transpositionTable;
-  static constexpr size_t MAX_TRANSPOSITION_SIZE = 1000000;
+  static constexpr size_t MAX_TRANSPOSITION_SIZE = 4000000;
 
   uint64_t getZobristHash(const BitBoard &bitboard, bool blackToMove) const;
   void clearTranspositionTable();
@@ -70,11 +70,6 @@ private:
   orderMoves(const BitBoard &bitboard,
              const std::vector<std::pair<int, int>> &moves, bool isBlack) const;
 
-  // Quiescence search placeholder (not implemented yet)
-  // double quiescenceSearch(BitBoard& bitboard, double alpha, double beta,
-  //                         bool isBlack, std::chrono::steady_clock::time_point
-  //                         startTime, std::chrono::milliseconds timeLimit)
-  //                         const { return 0.0; }
 protected:
   bool isTimeUp(std::chrono::steady_clock::time_point startTime,
                 std::chrono::milliseconds timeLimit =
