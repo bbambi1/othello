@@ -59,7 +59,7 @@ private:
   mutable std::unordered_map<uint64_t, TranspositionEntry> transpositionTable;
   static constexpr size_t MAX_TRANSPOSITION_SIZE = 1000000;
 
-  uint64_t getZobristHash(const BitBoard &bitboard) const;
+  uint64_t getZobristHash(const BitBoard &bitboard, bool blackToMove) const;
   void clearTranspositionTable();
   size_t getTranspositionTableSize() const;
 

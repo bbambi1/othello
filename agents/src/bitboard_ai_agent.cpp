@@ -78,7 +78,7 @@ BitBoardAIAgent::bitboardMinMax(BitBoard &bitboard, int depth, double alpha,
                                 std::chrono::milliseconds timeLimit) {
   if (isTimeUp(startTime, timeLimit))
     return 0.0;
-  uint64_t hash = getZobristHash(bitboard);
+  uint64_t hash = getZobristHash(bitboard, isMaximizing ? isBlack : !isBlack);
   auto it = transpositionTable.find(hash);
   if (it != transpositionTable.end() && it->second.depth >= depth) {
     const auto &entry = it->second;
@@ -103,8 +103,10 @@ BitBoardAIAgent::bitboardMinMax(BitBoard &bitboard, int depth, double alpha,
     }
     return sc;
   }
-  auto moves = bitboard.getValidMoves(isMaximizing ? isBlack : !isBlack);
+  bool sideToMoveBlack = (isMaximizing ? isBlack : !isBlack);
+  auto moves = bitboard.getValidMoves(sideToMoveBlack);
   if (moves.empty()) {
+    // Pass: side-to-move flips, so hash must XOR side-to-move key via getZobristHash
     double sc = bitboardMinMax(bitboard, depth - 1, alpha, beta, isBlack,
                                !isMaximizing, startTime, timeLimit);
     return sc;
@@ -270,8 +272,8 @@ inline double BitBoardAIAgent::evaluateDiscCountBitboard(const BitBoard &bb,
   return static_cast<double>(p - o) / t;
 }
 
-inline uint64_t BitBoardAIAgent::getZobristHash(const BitBoard &bb) const {
-  return bb.getZobristHash();
+inline uint64_t BitBoardAIAgent::getZobristHash(const BitBoard &bb, bool blackToMove) const {
+  return bb.getZobristHash(blackToMove);
 }
 
 inline void BitBoardAIAgent::clearTranspositionTable() {

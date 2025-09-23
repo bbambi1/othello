@@ -3,6 +3,7 @@
 #include <array>
 #include <cstdint>
 #include <random>
+#include <mutex>
 #include <stdexcept>
 #include <vector>
 
@@ -72,8 +73,11 @@ public:
 
   // Zobrist hashing: deterministic if `seed` supplied on first call
   static void initializeZobrist(uint64_t seed = 0);
+  // Returns the piece-only hash (no side-to-move). Maintained incrementally.
   uint64_t getZobristHash() const;
-  static uint64_t getZobristKey(int row, int col, int player);
+  // Returns full hash including side-to-move when `blackToMove` is true.
+  uint64_t getZobristHash(bool blackToMove) const;
+  static uint64_t getZobristKey(int row, int col, int player01);
 
 private:
   // Computes all discs flipped by placing a disc at (row,col).  A
@@ -91,7 +95,12 @@ private:
   // amounts.
   static uint64_t shiftMask(uint64_t board, int dr, int dc);
 
-  // Zobrist table: row × col × (0=empty,1=black,2=white)
-  static std::array<std::array<std::array<uint64_t, 3>, 8>, 8> zobristTable;
+  // Zobrist table: row × col × (0=black,1=white)
+  static std::array<std::array<std::array<uint64_t, 2>, 8>, 8> zobristTable;
+  static uint64_t zobristBlackToMoveKey;
+  static std::once_flag zobristOnce;
   static bool zobristInitialised;
+
+  // Incremental piece-only hash
+  uint64_t hash_ = 0;
 };

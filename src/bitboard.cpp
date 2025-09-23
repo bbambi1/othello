@@ -2,17 +2,39 @@
 #include <algorithm>
 #include <bitset>
 
-std::array<std::array<std::array<uint64_t, 3>, 8>, 8> BitBoard::zobristTable;
+std::array<std::array<std::array<uint64_t, 2>, 8>, 8> BitBoard::zobristTable;
+uint64_t BitBoard::zobristBlackToMoveKey = 0;
+std::once_flag BitBoard::zobristOnce;
 bool BitBoard::zobristInitialised = false;
 
 BitBoard::BitBoard() { reset(); }
 
 BitBoard::BitBoard(uint64_t black, uint64_t white)
-    : blackBoard(black), whiteBoard(white) {}
+    : blackBoard(black), whiteBoard(white) {
+  // Build incremental hash_ from boards
+  initializeZobrist();
+  hash_ = 0;
+  uint64_t tmp = blackBoard;
+  while (tmp) {
+    int bit = __builtin_ctzll(tmp);
+    tmp &= tmp - 1;
+    auto [r, c] = bitToPosition(bit);
+    hash_ ^= zobristTable[r][c][0];
+  }
+  tmp = whiteBoard;
+  while (tmp) {
+    int bit = __builtin_ctzll(tmp);
+    tmp &= tmp - 1;
+    auto [r, c] = bitToPosition(bit);
+    hash_ ^= zobristTable[r][c][1];
+  }
+}
 
 void BitBoard::reset() {
+  initializeZobrist();
   blackBoard = 0;
   whiteBoard = 0;
+  hash_ = 0;
   // Starting position: black at d5 (3,4) and e4 (4,3), white at d4 (3,3) and e5
   // (4,4) Note: rows/cols are zero‑indexed.  The positions are symmetrical
   // around the centre.
@@ -49,13 +71,25 @@ void BitBoard::setCell(int row, int col, int state) {
     throw std::out_of_range("Cell coordinates out of bounds");
   }
   uint64_t mask = positionToMask(row, col);
+  // Compute previous state before modifying boards
+  int prevState = 0;
+  if (blackBoard & mask) prevState = 1;
+  else if (whiteBoard & mask) prevState = 2;
+  // Remove previous from hash_
+  if (prevState == 1) {
+    hash_ ^= zobristTable[row][col][0];
+  } else if (prevState == 2) {
+    hash_ ^= zobristTable[row][col][1];
+  }
   // Clear both bits
   blackBoard &= ~mask;
   whiteBoard &= ~mask;
   if (state == 1) {
     blackBoard |= mask;
+    hash_ ^= zobristTable[row][col][0];
   } else if (state == 2) {
     whiteBoard |= mask;
+    hash_ ^= zobristTable[row][col][1];
   }
 }
 
@@ -195,9 +229,33 @@ bool BitBoard::makeMove(int row, int col, bool isBlack) {
   }
   uint64_t moveMask = positionToMask(row, col);
   uint64_t flipped = getFlippedBitboard(row, col, isBlack);
+  // Update hash incrementally for placed disc
+  auto [pr, pc] = bitToPosition(__builtin_ctzll(moveMask));
+  if (isBlack) {
+    // Square was empty before, so just add black piece
+    hash_ ^= zobristTable[pr][pc][0];
+  } else {
+    hash_ ^= zobristTable[pr][pc][1];
+  }
+  // Apply flips: for each bit flipped, toggle white->black or black->white keys
+  uint64_t tmp = flipped;
+  while (tmp) {
+    int bit = __builtin_ctzll(tmp);
+    tmp &= tmp - 1;
+    auto [r, c] = bitToPosition(bit);
+    if (isBlack) {
+      // was white, becomes black
+      hash_ ^= zobristTable[r][c][1];
+      hash_ ^= zobristTable[r][c][0];
+    } else {
+      // was black, becomes white
+      hash_ ^= zobristTable[r][c][0];
+      hash_ ^= zobristTable[r][c][1];
+    }
+  }
+  // Update bitboards
   if (isBlack) {
     blackBoard |= moveMask;
-    // Flip opponent discs
     blackBoard |= flipped;
     whiteBoard &= ~flipped;
   } else {
@@ -269,47 +327,44 @@ uint64_t BitBoard::shiftMask(uint64_t board, int dr, int dc) {
 // Initialise Zobrist table.  If a non‑zero seed is provided, use it to
 // seed the random engine.  Otherwise use a random device.
 void BitBoard::initializeZobrist(uint64_t seed) {
-  if (zobristInitialised)
-    return;
-  std::mt19937_64 gen;
-  if (seed == 0) {
-    std::random_device rd;
-    gen.seed(rd());
-  } else {
-    gen.seed(seed);
-  }
-  std::uniform_int_distribution<uint64_t> dist;
-  for (int r = 0; r < 8; ++r) {
-    for (int c = 0; c < 8; ++c) {
-      for (int p = 0; p < 3; ++p) {
-        zobristTable[r][c][p] = dist(gen);
+  std::call_once(zobristOnce, [seed]() {
+    std::mt19937_64 gen;
+    if (seed == 0) {
+      std::random_device rd;
+      gen.seed(rd());
+    } else {
+      gen.seed(seed);
+    }
+    std::uniform_int_distribution<uint64_t> dist;
+    for (int r = 0; r < 8; ++r) {
+      for (int c = 0; c < 8; ++c) {
+        for (int p = 0; p < 2; ++p) {
+          zobristTable[r][c][p] = dist(gen);
+        }
       }
     }
-  }
-  zobristInitialised = true;
+    zobristBlackToMoveKey = dist(gen);
+    zobristInitialised = true;
+  });
 }
 
-uint64_t BitBoard::getZobristKey(int row, int col, int player) {
+uint64_t BitBoard::getZobristKey(int row, int col, int player01) {
   if (!zobristInitialised) {
     // Seed deterministically when called without explicit seed
     initializeZobrist();
   }
-  return zobristTable[row][col][player];
+  return zobristTable[row][col][player01];
 }
 
 uint64_t BitBoard::getZobristHash() const {
   if (!zobristInitialised) {
     initializeZobrist();
   }
-  uint64_t hash = 0;
-  for (int r = 0; r < BOARD_SIZE; ++r) {
-    for (int c = 0; c < BOARD_SIZE; ++c) {
-      int state = getCell(r, c);
-      // XOR only non‑empty cells; empty cells contribute zero
-      if (state != 0) {
-        hash ^= zobristTable[r][c][state];
-      }
-    }
-  }
-  return hash;
+  return hash_;
+}
+
+uint64_t BitBoard::getZobristHash(bool blackToMove) const {
+  uint64_t h = getZobristHash();
+  if (blackToMove) h ^= zobristBlackToMoveKey;
+  return h;
 }
