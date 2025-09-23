@@ -208,9 +208,14 @@ void ConsoleGame::startGame() {
           if (move.first == -1 && move.second == -1) {
             handlePass();
           } else {
-            board.makeMove(move.first, move.second, currentPlayer);
-            passCount = 0;
-            switchPlayer();
+            // Validate the AI move before applying
+            if (!isValidMove(move.first, move.second, currentPlayer)) {
+              handlePass();
+            } else {
+              board.makeMove(move.first, move.second, currentPlayer);
+              passCount = 0;
+              switchPlayer();
+            }
           }
 
           if (currentMode == ConsoleGameMode::AI_VS_AI) {
