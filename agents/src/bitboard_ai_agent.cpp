@@ -36,6 +36,7 @@ inline std::pair<int, int>
 BitBoardAIAgent::getBestMove(const Board &board, CellState player,
                              std::chrono::milliseconds timeLimit) {
   auto startTime = std::chrono::steady_clock::now();
+  clearTranspositionTable();
   BitBoard bitboard;
   for (int row = 0; row < 8; ++row) {
     for (int col = 0; col < 8; ++col) {
@@ -52,23 +53,53 @@ BitBoardAIAgent::getBestMove(const Board &board, CellState player,
   if (moves.empty())
     return {-1, -1};
   moves = orderMoves(bitboard, moves, isBlackTurn);
+
   std::pair<int, int> bestMove = moves.front();
   double bestScore = std::numeric_limits<double>::lowest();
-  for (const auto &mv : moves) {
+  std::pair<int, int> lastCompletedBestMove = bestMove;
+
+  for (int depth = 1; depth <= maxDepth; ++depth) {
     if (isTimeUp(startTime, timeLimit))
       break;
-    BitBoard temp = bitboard;
-    if (temp.makeMove(mv.first, mv.second, isBlackTurn)) {
-      double score = bitboardMinMax(temp, maxDepth - 1,
-                                    std::numeric_limits<double>::lowest(),
-                                    std::numeric_limits<double>::max(),
-                                    isBlackTurn, false, startTime, timeLimit);
-      if (score > bestScore) {
-        bestScore = score;
-        bestMove = mv;
+
+    // If we have a principal variation move from previous depth, try it first
+    if (!moves.empty() && !(moves.front() == lastCompletedBestMove)) {
+      auto it = std::find(moves.begin(), moves.end(), lastCompletedBestMove);
+      if (it != moves.end()) {
+        std::iter_swap(moves.begin(), it);
       }
     }
+
+    std::pair<int, int> iterationBestMove = moves.front();
+    double iterationBestScore = std::numeric_limits<double>::lowest();
+
+    for (const auto &mv : moves) {
+      if (isTimeUp(startTime, timeLimit))
+        break;
+      BitBoard temp = bitboard;
+      if (temp.makeMove(mv.first, mv.second, isBlackTurn)) {
+        double score = bitboardMinMax(
+            temp, depth - 1, std::numeric_limits<double>::lowest(),
+            std::numeric_limits<double>::max(), isBlackTurn, false, startTime,
+            timeLimit);
+        if (score > iterationBestScore) {
+          iterationBestScore = score;
+          iterationBestMove = mv;
+        }
+      }
+    }
+
+    // Only update results if we completed at least one move at this depth
+    if (iterationBestScore != std::numeric_limits<double>::lowest()) {
+      bestMove = iterationBestMove;
+      bestScore = iterationBestScore;
+      lastCompletedBestMove = iterationBestMove;
+    } else {
+      break;
+    }
   }
+
+  (void)bestScore; // suppress unused
   return bestMove;
 }
 
