@@ -8,7 +8,7 @@
 
 enum class ConsoleGameMode { HUMAN_VS_HUMAN, HUMAN_VS_AI, AI_VS_AI };
 
-enum class AIAgentType { RANDOM, GREEDY, MINMAX, BITBOARD, MCTS };
+enum class AIAgentType { RANDOM, GREEDY, MINMAX, BITBOARD, MCTS, PANDA };
 
 class ConsoleGame {
 public:

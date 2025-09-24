@@ -246,6 +246,9 @@ void GUIInterface::selectAIAgent() {
         } else if (event.key.code == sf::Keyboard::E) {
           selectedAIAgent = AIAgentType::MCTS;
           agentSelected = true;
+        } else if (event.key.code == sf::Keyboard::F) {
+          selectedAIAgent = AIAgentType::PANDA;
+          agentSelected = true;
         } else {
           std::cout << std::endl;
         }
@@ -336,6 +339,9 @@ void GUIInterface::selectOpponentAIAgent() {
         } else if (event.key.code == sf::Keyboard::E) {
           selectedOpponentAIAgent = AIAgentType::MCTS;
           agentSelected = true;
+        } else if (event.key.code == sf::Keyboard::F) {
+          selectedOpponentAIAgent = AIAgentType::PANDA;
+          agentSelected = true;
         } else {
           std::cout << std::endl;
         }
@@ -369,6 +375,9 @@ void GUIInterface::initializeGame() {
     case AIAgentType::MCTS:
       agentType = "mcts";
       break;
+    case AIAgentType::PANDA:
+      agentType = "panda";
+      break;
     }
     aiAgent = createAIAgent(agentType, getAIAgentTypeString(selectedAIAgent));
     if (aiAgent) {
@@ -393,6 +402,9 @@ void GUIInterface::initializeGame() {
         break;
       case AIAgentType::MCTS:
         opponentAgentType = "mcts";
+        break;
+      case AIAgentType::PANDA:
+        opponentAgentType = "panda";
         break;
       }
       opponentAIAgent = createAIAgent(

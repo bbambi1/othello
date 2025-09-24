@@ -7,13 +7,13 @@ SRCDIR = src
 INCDIR = include
 
 # Source files for GUI target
-SOURCES_GUI = src/board.cpp src/bitboard.cpp src/ai_agent_base.cpp agents/src/random_ai_agent.cpp agents/src/greedy_ai_agent.cpp agents/src/minmax_ai_agent.cpp agents/src/bitboard_ai_agent.cpp agents/src/mcts_ai_agent.cpp src/gui_interface.cpp src/main_gui.cpp
+SOURCES_GUI = src/board.cpp src/bitboard.cpp src/ai_agent_base.cpp agents/src/random_ai_agent.cpp agents/src/greedy_ai_agent.cpp agents/src/minmax_ai_agent.cpp agents/src/bitboard_ai_agent.cpp agents/src/mcts_ai_agent.cpp agents/src/panda_ai_agent.cpp src/gui_interface.cpp src/main_gui.cpp
 
 # Source files for Tournament target
-SOURCES_TOURNAMENT = src/board.cpp src/bitboard.cpp src/ai_agent_base.cpp agents/src/random_ai_agent.cpp agents/src/greedy_ai_agent.cpp agents/src/minmax_ai_agent.cpp agents/src/bitboard_ai_agent.cpp agents/src/mcts_ai_agent.cpp src/simple_tournament.cpp src/tournament_console.cpp src/main_tournament_console.cpp
+SOURCES_TOURNAMENT = src/board.cpp src/bitboard.cpp src/ai_agent_base.cpp agents/src/random_ai_agent.cpp agents/src/greedy_ai_agent.cpp agents/src/minmax_ai_agent.cpp agents/src/bitboard_ai_agent.cpp agents/src/mcts_ai_agent.cpp agents/src/panda_ai_agent.cpp src/simple_tournament.cpp src/tournament_console.cpp src/main_tournament_console.cpp
 
 # Source files for Console target
-SOURCES_CONSOLE = src/board.cpp src/bitboard.cpp src/ai_agent_base.cpp agents/src/random_ai_agent.cpp agents/src/greedy_ai_agent.cpp agents/src/minmax_ai_agent.cpp agents/src/bitboard_ai_agent.cpp agents/src/mcts_ai_agent.cpp src/console_game.cpp src/main_console.cpp
+SOURCES_CONSOLE = src/board.cpp src/bitboard.cpp src/ai_agent_base.cpp agents/src/random_ai_agent.cpp agents/src/greedy_ai_agent.cpp agents/src/minmax_ai_agent.cpp agents/src/bitboard_ai_agent.cpp agents/src/mcts_ai_agent.cpp agents/src/panda_ai_agent.cpp src/console_game.cpp src/main_console.cpp
 
 # Object files
 OBJECTS_GUI = $(SOURCES_GUI:.cpp=.o)

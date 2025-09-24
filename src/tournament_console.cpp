@@ -537,5 +537,6 @@ bool TournamentConsole::validateConfiguration() const {
 
 void TournamentConsole::initializeAvailableAgents() {
   // These should match the registered agent types in the system (lowercase)
-  availableAgentTypes_ = {"random", "greedy", "minmax", "bitboard", "mcts"};
+  availableAgentTypes_ = {"random",   "greedy", "minmax",
+                          "bitboard", "mcts",   "panda"};
 }
