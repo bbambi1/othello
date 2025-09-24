@@ -277,6 +277,12 @@ bool BitBoard::operator!=(const BitBoard &other) const {
   return !(*this == other);
 }
 
+bool BitBoard::operator<(const BitBoard& other) const {
+    if (blackBoard != other.blackBoard)
+        return blackBoard < other.blackBoard;
+    return whiteBoard < other.whiteBoard;
+}
+
 uint64_t BitBoard::shiftMask(uint64_t board, int dr, int dc) {
   uint64_t result = 0;
   while (board) {
