@@ -349,4 +349,4 @@ AgentDuJardin::isTimeUpLarge(std::chrono::steady_clock::time_point startTime,
   return elapsed >= threshold;
 }
 
-REGISTER_AI_AGENT(AgentDuJardin, "AgentDuJardin")
+REGISTER_AI_AGENT(AgentDuJardin, "agentDuJardin")
