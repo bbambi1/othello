@@ -277,6 +277,12 @@ bool BitBoard::operator!=(const BitBoard &other) const {
   return !(*this == other);
 }
 
+bool BitBoard::operator<(const BitBoard& other) const {
+    if (blackBoard != other.blackBoard)
+        return blackBoard < other.blackBoard;
+    return whiteBoard < other.whiteBoard;
+}
+
 uint64_t BitBoard::shiftMask(uint64_t board, int dr, int dc) {
   uint64_t result = 0;
   while (board) {
@@ -337,4 +343,144 @@ uint64_t BitBoard::getZobristHash(bool blackToMove) const {
   if (blackToMove)
     h ^= zobristBlackToMoveKey;
   return h;
+}
+
+uint64_t BitBoard::getCanonicalZobristHash() const {
+    BitBoard canonical = toCanonical();
+    return canonical.getZobristHash();
+}
+
+BitBoard BitBoard::toCanonical() const {
+    BitBoard candidates[8];
+    candidates[0] = *this;
+    candidates[1] = this->rot90();
+    candidates[2] = this->rot180();
+    candidates[3] = this->rot270();
+    candidates[4] = this->mirrorHorizontal();
+    candidates[5] = this->mirrorVertical();
+    candidates[6] = this->mirrorDiag();
+    candidates[7] = this->mirrorAntiDiag();
+
+    BitBoard best = candidates[0];
+    for (int i = 1; i < 8; ++i) {
+        if (candidates[i] < best) {
+            best = candidates[i];
+        }
+    }
+    return best;
+}
+
+BitBoard BitBoard::rot90() const {
+    return {
+        flipDiagonal(flipHorizontal(blackBoard)),
+        flipDiagonal(flipHorizontal(whiteBoard))
+    };
+}
+
+BitBoard BitBoard::rot180() const {
+    return {
+        flipVertical(flipHorizontal(blackBoard)),
+        flipVertical(flipHorizontal(whiteBoard))
+    };
+}
+
+BitBoard BitBoard::rot270() const {
+    return {
+        flipAntiDiagonal(flipHorizontal(blackBoard)),
+        flipAntiDiagonal(flipHorizontal(whiteBoard))
+    };
+}
+
+BitBoard BitBoard::mirrorHorizontal() const {
+    return {
+        flipHorizontal(blackBoard),
+        flipHorizontal(whiteBoard)
+    };
+}
+
+BitBoard BitBoard::mirrorVertical() const {
+    return {
+        flipVertical(blackBoard),
+        flipVertical(whiteBoard)
+    };
+}
+
+BitBoard BitBoard::mirrorDiag() const {
+    return {
+        flipDiagonal(blackBoard),
+        flipDiagonal(whiteBoard)
+    };
+}
+
+BitBoard BitBoard::mirrorAntiDiag() const {
+    return {
+        flipAntiDiagonal(blackBoard),
+        flipAntiDiagonal(whiteBoard)
+    };
+}
+
+uint64_t BitBoard::getStableMaskForPlayerBitwise(bool isBlack) const {
+    const uint64_t player = getPlayerBoard(isBlack);
+
+    // Masks to prevent wraparound during bit shifts
+    const uint64_t NOT_LEFT   = 0xfefefefefefefefeULL;
+    const uint64_t NOT_RIGHT  = 0x7f7f7f7f7f7f7f7fULL;
+    const uint64_t NOT_TOP    = 0xffffffffffffff00ULL;
+    const uint64_t NOT_BOTTOM = 0x00ffffffffffffffULL;
+
+    // Initial stable positions (corners)
+    uint64_t stable = 0;
+    if (player & positionToMask(0, 0)) stable |= positionToMask(0, 0);
+    if (player & positionToMask(0, 7)) stable |= positionToMask(0, 7);
+    if (player & positionToMask(7, 0)) stable |= positionToMask(7, 0);
+    if (player & positionToMask(7, 7)) stable |= positionToMask(7, 7);
+
+    uint64_t prev = 0;
+
+    while (stable != prev) {
+        prev = stable;
+
+        // All player stones not yet marked as stable
+        uint64_t candidates = player & ~stable;
+
+        // Build masks of stable directions
+        uint64_t north = ((stable << 8) & NOT_TOP);
+        uint64_t south = ((stable >> 8) & NOT_BOTTOM);
+        uint64_t east  = ((stable >> 1) & NOT_RIGHT);
+        uint64_t west  = ((stable << 1) & NOT_LEFT);
+        uint64_t ne = ((stable << 7) & NOT_TOP & NOT_RIGHT);
+        uint64_t nw = ((stable << 9) & NOT_TOP & NOT_LEFT);
+        uint64_t se = ((stable >> 9) & NOT_BOTTOM & NOT_RIGHT);
+        uint64_t sw = ((stable >> 7) & NOT_BOTTOM & NOT_LEFT);
+
+        // Keep only candidates that are fully surrounded in all directions
+        uint64_t surrounded =
+            north & south & east & west & ne & nw & se & sw;
+
+        // Filter to only player's pieces
+        surrounded &= candidates;
+
+        // Add to stable set
+        stable |= surrounded;
+    }
+
+    return stable;
+}
+
+bool BitBoard::isCornerControlled(int r, int c, bool isBlack) const {
+    int corner_r = (r < 4) ? 0 : 7;
+    int corner_c = (c < 4) ? 0 : 7;
+    int owner = getCell(corner_r, corner_c);
+    return (isBlack && owner == 1) || (!isBlack && owner == 2);
+}
+
+static constexpr uint64_t cornerMask = 
+    (1ULL << 0) |          // (0,0)
+    (1ULL << 7) |          // (0,7)
+    (1ULL << 56) |         // (7,0)
+    (1ULL << 63);          // (7,7)
+
+uint64_t BitBoard::getPlayerCorners(bool isBlack) const {
+    uint64_t playerBoard = isBlack ? blackBoard : whiteBoard;
+    return playerBoard & cornerMask;  // bits à 1 où le joueur a un coin
 }
