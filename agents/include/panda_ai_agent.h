@@ -14,26 +14,22 @@ enum class CellState;
 class PandaAIAgent : public AIAgentBase {
 public:
   PandaAIAgent(const std::string &name = "Panda",
-               const std::string &author = "Andres", int maxDepth = 9);
+               const std::string &author = "PandaAI-Dev", int maxDepth = 12);
 
   std::pair<int, int> getBestMove(const Board &board, CellState player,
                                   std::chrono::milliseconds timeLimit =
                                       std::chrono::milliseconds(1000)) override;
 
 private:
-  // Search parameters - optimized for speed
   int maxDepth;
-  static constexpr int ENDGAME_DEPTH = 16;   // Reduced for speed
-  static constexpr size_t TT_SIZE = 2097152; // 2^21 entries for better hit rate
+  static constexpr int ENDGAME_DEPTH = 16;
+  static constexpr size_t TT_SIZE = 2097152;
 
-  // Node counting for performance analysis
   mutable uint64_t nodesSearched;
 
-  // Game phase detection
   enum class GamePhase { OPENING, MIDGAME, ENDGAME };
   GamePhase getGamePhase(const BitBoard &bitboard) const;
 
-  // Core search methods
   std::pair<int, int>
   iterativeDeepeningSearch(const BitBoard &bitboard, bool isBlack,
                            std::chrono::steady_clock::time_point startTime,
@@ -56,7 +52,6 @@ private:
   double evaluateDiscCount(const BitBoard &bitboard, bool isBlack) const;
   double evaluatePositional(const BitBoard &bitboard, bool isBlack) const;
 
-  // Evaluation weights for different game phases
   struct EvaluationWeights {
     double mobility;
     double cornerControl;
@@ -86,7 +81,6 @@ private:
 
   mutable std::vector<TTEntry> transpositionTable;
 
-  // History heuristic table (per search), indexed by row*8+col
   mutable std::array<int, 64> historyTable = {0};
 
   bool probeTTEntry(uint64_t hash, int depth, double alpha, double beta,
@@ -107,11 +101,7 @@ private:
   std::pair<int, int> getOpeningMove(const BitBoard &bitboard,
                                      bool isBlack) const;
   bool isOpeningPosition(const BitBoard &bitboard) const;
-  std::pair<int, int>
-  selectBestOpeningMove(const BitBoard &bitboard,
-                        const std::vector<std::pair<int, int>> &validMoves,
-                        const std::vector<std::pair<int, int>> &bookMoves,
-                        bool isBlack) const;
+
   std::pair<int, int>
   selectStrategicOpeningMove(const BitBoard &bitboard,
                              const std::vector<std::pair<int, int>> &validMoves,

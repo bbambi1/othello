@@ -8,7 +8,7 @@
 
 enum class ConsoleGameMode { HUMAN_VS_HUMAN, HUMAN_VS_AI, AI_VS_AI };
 
-enum class AIAgentType { RANDOM, GREEDY, MINMAX, BITBOARD, MCTS, PANDA };
+enum class AIAgentType { BITBOARD, MCTS, PANDA, PLAGIAT_BOT, AGENT_DU_JARDIN };
 
 class ConsoleGame {
 public:
@@ -68,5 +68,4 @@ private:
   std::string getStringInput(const std::string &prompt);
   int getIntInput(const std::string &prompt, int min, int max);
   bool getYesNoInput(const std::string &prompt);
-  void displayHelp();
 };

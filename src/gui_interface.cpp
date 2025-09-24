@@ -7,8 +7,8 @@
 
 GUIInterface::GUIInterface()
     : currentMode(GUIGameMode::HUMAN_VS_HUMAN),
-      selectedAIAgent(AIAgentType::MINMAX),
-      selectedOpponentAIAgent(AIAgentType::MINMAX),
+      selectedAIAgent(AIAgentType::BITBOARD),
+      selectedOpponentAIAgent(AIAgentType::BITBOARD),
       currentPlayer(CellState::BLACK), gameRunning(false), gamePaused(false),
       aiJustMoved(false), aiDepth(6), aiMoveDelay(500) {
   initializeSFML();
@@ -232,22 +232,19 @@ void GUIInterface::selectAIAgent() {
       if (event.type == sf::Event::KeyPressed) {
 
         if (event.key.code == sf::Keyboard::A) {
-          selectedAIAgent = AIAgentType::RANDOM;
-          agentSelected = true;
-        } else if (event.key.code == sf::Keyboard::B) {
-          selectedAIAgent = AIAgentType::GREEDY;
-          agentSelected = true;
-        } else if (event.key.code == sf::Keyboard::C) {
-          selectedAIAgent = AIAgentType::MINMAX;
-          agentSelected = true;
-        } else if (event.key.code == sf::Keyboard::D) {
           selectedAIAgent = AIAgentType::BITBOARD;
           agentSelected = true;
-        } else if (event.key.code == sf::Keyboard::E) {
+        } else if (event.key.code == sf::Keyboard::B) {
           selectedAIAgent = AIAgentType::MCTS;
           agentSelected = true;
-        } else if (event.key.code == sf::Keyboard::F) {
+        } else if (event.key.code == sf::Keyboard::C) {
           selectedAIAgent = AIAgentType::PANDA;
+          agentSelected = true;
+        } else if (event.key.code == sf::Keyboard::D) {
+          selectedAIAgent = AIAgentType::PLAGIAT_BOT;
+          agentSelected = true;
+        } else if (event.key.code == sf::Keyboard::E) {
+          selectedAIAgent = AIAgentType::AGENT_DU_JARDIN;
           agentSelected = true;
         } else {
           std::cout << std::endl;
@@ -325,22 +322,19 @@ void GUIInterface::selectOpponentAIAgent() {
       if (event.type == sf::Event::KeyPressed) {
 
         if (event.key.code == sf::Keyboard::A) {
-          selectedOpponentAIAgent = AIAgentType::RANDOM;
-          agentSelected = true;
-        } else if (event.key.code == sf::Keyboard::B) {
-          selectedOpponentAIAgent = AIAgentType::GREEDY;
-          agentSelected = true;
-        } else if (event.key.code == sf::Keyboard::C) {
-          selectedOpponentAIAgent = AIAgentType::MINMAX;
-          agentSelected = true;
-        } else if (event.key.code == sf::Keyboard::D) {
           selectedOpponentAIAgent = AIAgentType::BITBOARD;
           agentSelected = true;
-        } else if (event.key.code == sf::Keyboard::E) {
+        } else if (event.key.code == sf::Keyboard::B) {
           selectedOpponentAIAgent = AIAgentType::MCTS;
           agentSelected = true;
-        } else if (event.key.code == sf::Keyboard::F) {
+        } else if (event.key.code == sf::Keyboard::C) {
           selectedOpponentAIAgent = AIAgentType::PANDA;
+          agentSelected = true;
+        } else if (event.key.code == sf::Keyboard::D) {
+          selectedOpponentAIAgent = AIAgentType::PLAGIAT_BOT;
+          agentSelected = true;
+        } else if (event.key.code == sf::Keyboard::E) {
+          selectedOpponentAIAgent = AIAgentType::AGENT_DU_JARDIN;
           agentSelected = true;
         } else {
           std::cout << std::endl;
@@ -360,15 +354,6 @@ void GUIInterface::initializeGame() {
       currentMode == GUIGameMode::AI_VS_AI) {
     std::string agentType = "";
     switch (selectedAIAgent) {
-    case AIAgentType::RANDOM:
-      agentType = "random";
-      break;
-    case AIAgentType::GREEDY:
-      agentType = "greedy";
-      break;
-    case AIAgentType::MINMAX:
-      agentType = "minmax";
-      break;
     case AIAgentType::BITBOARD:
       agentType = "bitboard";
       break;
@@ -377,6 +362,12 @@ void GUIInterface::initializeGame() {
       break;
     case AIAgentType::PANDA:
       agentType = "panda";
+      break;
+    case AIAgentType::PLAGIAT_BOT:
+      agentType = "plagiatBot";
+      break;
+    case AIAgentType::AGENT_DU_JARDIN:
+      agentType = "agentDuJardin";
       break;
     }
     aiAgent = createAIAgent(agentType, getAIAgentTypeString(selectedAIAgent));
@@ -388,15 +379,6 @@ void GUIInterface::initializeGame() {
     if (currentMode == GUIGameMode::AI_VS_AI) {
       std::string opponentAgentType = "";
       switch (selectedOpponentAIAgent) {
-      case AIAgentType::RANDOM:
-        opponentAgentType = "random";
-        break;
-      case AIAgentType::GREEDY:
-        opponentAgentType = "greedy";
-        break;
-      case AIAgentType::MINMAX:
-        opponentAgentType = "minmax";
-        break;
       case AIAgentType::BITBOARD:
         opponentAgentType = "bitboard";
         break;
@@ -405,6 +387,12 @@ void GUIInterface::initializeGame() {
         break;
       case AIAgentType::PANDA:
         opponentAgentType = "panda";
+        break;
+      case AIAgentType::PLAGIAT_BOT:
+        opponentAgentType = "plagiatBot";
+        break;
+      case AIAgentType::AGENT_DU_JARDIN:
+        opponentAgentType = "agentDuJardin";
         break;
       }
       opponentAIAgent = createAIAgent(
@@ -798,16 +786,16 @@ void GUIInterface::processTurn() {
 
 std::string GUIInterface::getAIAgentTypeString(AIAgentType type) const {
   switch (type) {
-  case AIAgentType::RANDOM:
-    return "Random";
-  case AIAgentType::GREEDY:
-    return "Greedy";
-  case AIAgentType::MINMAX:
-    return "MinMax";
   case AIAgentType::BITBOARD:
     return "BitBoard";
   case AIAgentType::MCTS:
     return "MCTS";
+  case AIAgentType::PANDA:
+    return "Panda";
+  case AIAgentType::PLAGIAT_BOT:
+    return "PlagiatBot";
+  case AIAgentType::AGENT_DU_JARDIN:
+    return "AgentDuJardin";
   default:
     return "Unknown";
   }

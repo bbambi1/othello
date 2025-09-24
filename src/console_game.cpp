@@ -1,8 +1,11 @@
 #include "console_game.h"
+#include "agent_du_jardin.h"
 #include "bitboard_ai_agent.h"
 #include "greedy_ai_agent.h"
 #include "mcts_ai_agent.h"
 #include "minmax_ai_agent.h"
+#include "panda_ai_agent.h"
+#include "plagiat_bot.h"
 #include "random_ai_agent.h"
 #include <algorithm>
 #include <cctype>
@@ -23,8 +26,8 @@
 
 ConsoleGame::ConsoleGame()
     : currentMode(ConsoleGameMode::HUMAN_VS_HUMAN),
-      selectedAIAgent(AIAgentType::RANDOM),
-      selectedOpponentAIAgent(AIAgentType::RANDOM),
+      selectedAIAgent(AIAgentType::BITBOARD),
+      selectedOpponentAIAgent(AIAgentType::BITBOARD),
       currentPlayer(CellState::BLACK), gameRunning(false), passCount(0),
       aiTimeLimit(std::chrono::milliseconds(1000)) {}
 
@@ -87,19 +90,19 @@ void ConsoleGame::selectAIAgent() {
 
   switch (choice) {
   case 1:
-    selectedAIAgent = AIAgentType::RANDOM;
-    break;
-  case 2:
-    selectedAIAgent = AIAgentType::GREEDY;
-    break;
-  case 3:
-    selectedAIAgent = AIAgentType::MINMAX;
-    break;
-  case 4:
     selectedAIAgent = AIAgentType::BITBOARD;
     break;
-  case 5:
+  case 2:
     selectedAIAgent = AIAgentType::MCTS;
+    break;
+  case 3:
+    selectedAIAgent = AIAgentType::PANDA;
+    break;
+  case 4:
+    selectedAIAgent = AIAgentType::PLAGIAT_BOT;
+    break;
+  case 5:
+    selectedAIAgent = AIAgentType::AGENT_DU_JARDIN;
     break;
   }
 
@@ -118,19 +121,19 @@ void ConsoleGame::selectOpponentAIAgent() {
 
   switch (choice) {
   case 1:
-    selectedOpponentAIAgent = AIAgentType::RANDOM;
-    break;
-  case 2:
-    selectedOpponentAIAgent = AIAgentType::GREEDY;
-    break;
-  case 3:
-    selectedOpponentAIAgent = AIAgentType::MINMAX;
-    break;
-  case 4:
     selectedOpponentAIAgent = AIAgentType::BITBOARD;
     break;
-  case 5:
+  case 2:
     selectedOpponentAIAgent = AIAgentType::MCTS;
+    break;
+  case 3:
+    selectedOpponentAIAgent = AIAgentType::PANDA;
+    break;
+  case 4:
+    selectedOpponentAIAgent = AIAgentType::PLAGIAT_BOT;
+    break;
+  case 5:
+    selectedOpponentAIAgent = AIAgentType::AGENT_DU_JARDIN;
     break;
   }
 
@@ -142,11 +145,11 @@ void ConsoleGame::displayAIAgentMenu() {
   std::cout << "Select AI Agent" << std::endl;
   std::cout << "===============" << std::endl;
   std::cout << std::endl;
-  std::cout << "1. Random AI" << std::endl;
-  std::cout << "2. Greedy AI" << std::endl;
-  std::cout << "3. MinMax AI" << std::endl;
-  std::cout << "4. BitBoard AI" << std::endl;
-  std::cout << "5. MCTS AI" << std::endl;
+  std::cout << "1. BitBoard AI" << std::endl;
+  std::cout << "2. MCTS AI" << std::endl;
+  std::cout << "3. Panda AI" << std::endl;
+  std::cout << "4. PlagiatBot AI" << std::endl;
+  std::cout << "5. AgentDuJardin AI" << std::endl;
   std::cout << std::endl;
 }
 
@@ -441,16 +444,16 @@ std::string ConsoleGame::getPlayerName(CellState player) const {
 
 std::string ConsoleGame::getAIAgentTypeString(AIAgentType type) const {
   switch (type) {
-  case AIAgentType::RANDOM:
-    return "Random";
-  case AIAgentType::GREEDY:
-    return "Greedy";
-  case AIAgentType::MINMAX:
-    return "MinMax";
   case AIAgentType::BITBOARD:
     return "BitBoard";
   case AIAgentType::MCTS:
     return "MCTS";
+  case AIAgentType::PANDA:
+    return "Panda";
+  case AIAgentType::PLAGIAT_BOT:
+    return "PlagiatBot";
+  case AIAgentType::AGENT_DU_JARDIN:
+    return "AgentDuJardin";
   default:
     return "Unknown";
   }
@@ -459,16 +462,16 @@ std::string ConsoleGame::getAIAgentTypeString(AIAgentType type) const {
 AIAgentBase *ConsoleGame::createAIAgent(AIAgentType type,
                                         const std::string &name) {
   switch (type) {
-  case AIAgentType::RANDOM:
-    return new RandomAIAgent(name);
-  case AIAgentType::GREEDY:
-    return new GreedyAIAgent(name);
-  case AIAgentType::MINMAX:
-    return new MinMaxAIAgent(name);
   case AIAgentType::BITBOARD:
     return new BitBoardAIAgent(name, "System", 8);
   case AIAgentType::MCTS:
     return new MCTSAiAgent(name);
+  case AIAgentType::PANDA:
+    return new PandaAIAgent(name);
+  case AIAgentType::PLAGIAT_BOT:
+    return new PlagiatBot(name);
+  case AIAgentType::AGENT_DU_JARDIN:
+    return new AgentDuJardin(name);
   default:
     return new RandomAIAgent(name);
   }
@@ -533,29 +536,4 @@ bool ConsoleGame::getYesNoInput(const std::string &prompt) {
       std::cout << "Please enter 'y' or 'n'." << std::endl;
     }
   }
-}
-
-void ConsoleGame::displayHelp() {
-  clearScreen();
-  std::cout << "Othello Console Game Help" << std::endl;
-  std::cout << "=========================" << std::endl;
-  std::cout << std::endl;
-  std::cout << "How to Play:" << std::endl;
-  std::cout
-      << "- Enter moves in format A1, B2, etc. (column letter, row number)"
-      << std::endl;
-  std::cout << "- Type 'pass' or 'p' to pass your turn" << std::endl;
-  std::cout << "- The game ends when both players pass or the board is full"
-            << std::endl;
-  std::cout << "- The player with more discs wins" << std::endl;
-  std::cout << std::endl;
-  std::cout << "AI Agents:" << std::endl;
-  std::cout << "- Random: Makes random valid moves" << std::endl;
-  std::cout << "- Greedy: Always takes the move that flips the most discs"
-            << std::endl;
-  std::cout << "- MinMax: Uses minimax algorithm with lookahead" << std::endl;
-  std::cout << "- BitBoard: Uses bitboard representation for efficiency"
-            << std::endl;
-  std::cout << std::endl;
-  waitForKeyPress();
 }

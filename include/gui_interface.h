@@ -8,7 +8,7 @@
 
 enum class GUIGameMode { HUMAN_VS_HUMAN, HUMAN_VS_AI, AI_VS_AI };
 
-enum class AIAgentType { RANDOM, GREEDY, MINMAX, BITBOARD, MCTS, PANDA };
+enum class AIAgentType { BITBOARD, MCTS, PANDA, PLAGIAT_BOT, AGENT_DU_JARDIN };
 
 class GUIInterface {
 public:

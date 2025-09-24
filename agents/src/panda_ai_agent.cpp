@@ -109,11 +109,9 @@ std::pair<int, int> PandaAIAgent::iterativeDeepeningSearch(
   std::pair<int, int> bestMove = validMoves[0];
   double bestScore = -std::numeric_limits<double>::infinity();
 
-  // Allocate 95% of time for iterative deepening
   auto searchTimeLimit =
-      std::chrono::milliseconds(static_cast<long>(timeLimit.count() * 0.95));
+      std::chrono::milliseconds(static_cast<long>(timeLimit.count() * 0.80));
 
-  // Check for endgame exact search
   int emptySquares = 64 - bitboard.getTotalDiscs();
   if (emptySquares <= ENDGAME_DEPTH) {
     bool timeUp = false;
@@ -136,7 +134,6 @@ std::pair<int, int> PandaAIAgent::iterativeDeepeningSearch(
     return bestMove;
   }
 
-  // Iterative deepening search - start from depth 1 for better exploration
   for (int depth = 1; depth <= maxDepth; ++depth) {
     if (isTimeUp(startTime, searchTimeLimit))
       break;
@@ -145,13 +142,11 @@ std::pair<int, int> PandaAIAgent::iterativeDeepeningSearch(
     std::pair<int, int> iterationBestMove = validMoves[0];
     bool timeUp = false;
 
-    // Order moves based on previous iteration results
     auto orderedMoves = orderMoves(bitboard, validMoves, isBlack, bestMove);
 
-    // Aspiration window around previous best score (±50)
     double baseAlpha = -std::numeric_limits<double>::infinity();
     double baseBeta = std::numeric_limits<double>::infinity();
-    const double aspWindow = 50.0; // "centipawn"-ish units
+    const double aspWindow = 50.0;
     if (depth > 1 && !std::isinf(bestScore)) {
       baseAlpha = bestScore - aspWindow;
       baseBeta = bestScore + aspWindow;
@@ -188,30 +183,25 @@ std::pair<int, int> PandaAIAgent::iterativeDeepeningSearch(
 
           alpha = std::max(alpha, score);
           if (alpha >= beta) {
-            // cutoff
             break;
           }
         }
       }
 
       if (timeUp)
-        break; // give up on this depth
+        break;
 
-      // Check aspiration window result and decide whether to widen
       if (iterationBestScore <= baseAlpha) {
-        // Fail low: widen window downwards
         baseAlpha -= aspWindow * 2.0;
-        continue; // retry
+        continue;
       } else if (iterationBestScore >= baseBeta) {
-        // Fail high: widen window upwards
         baseBeta += aspWindow * 2.0;
-        continue; // retry
+        continue;
       } else {
-        complete = true; // within window
+        complete = true;
       }
     }
 
-    // Only update best move if we completed the iteration (no time out)
     if (!timeUp) {
       bestScore = iterationBestScore;
       bestMove = iterationBestMove;
@@ -243,13 +233,11 @@ double PandaAIAgent::negamax(BitBoard &bitboard, int depth, double alpha,
                              bool &timeUp) {
   nodesSearched++;
 
-  // Time check every 2000 nodes for better performance
-  if (nodesSearched % 2000 == 0 && isTimeUp(startTime, timeLimit)) {
+  if (nodesSearched % 256 == 0 && isTimeUp(startTime, timeLimit)) {
     timeUp = true;
     return 0.0;
   }
 
-  // Probe transposition table
   uint64_t hash = bitboard.getZobristHash();
   std::pair<int, int> ttMove;
   double ttScore;
@@ -257,7 +245,6 @@ double PandaAIAgent::negamax(BitBoard &bitboard, int depth, double alpha,
     return ttScore;
   }
 
-  // Terminal node evaluation
   if (depth == 0 || bitboard.isGameOver()) {
     double score = evaluatePosition(bitboard, isBlack);
     storeTTEntry(hash, score, depth, EntryType::EXACT, {-1, -1});
@@ -266,35 +253,39 @@ double PandaAIAgent::negamax(BitBoard &bitboard, int depth, double alpha,
 
   auto validMoves = bitboard.getValidMoves(isBlack);
   if (validMoves.empty()) {
-    // Pass turn
     if (!bitboard.hasValidMoves(!isBlack)) {
-      // Game over
       double score = evaluatePosition(bitboard, isBlack);
       storeTTEntry(hash, score, depth, EntryType::EXACT, {-1, -1});
       return score;
     }
 
-    // Recursive call with passed turn
     double score = -negamax(bitboard, depth - 1, -beta, -alpha, !isBlack,
                             startTime, timeLimit, timeUp);
     storeTTEntry(hash, score, depth, EntryType::EXACT, {-1, -1});
     return score;
   }
 
-  // Order moves for better alpha-beta pruning
   validMoves = orderMoves(bitboard, validMoves, isBlack, ttMove);
 
   double bestScore = -std::numeric_limits<double>::infinity();
   std::pair<int, int> bestMove = validMoves[0];
   EntryType entryType = EntryType::UPPER_BOUND;
 
+  int moveIndex = 0;
   for (const auto &move : validMoves) {
     if (timeUp)
       break;
 
     BitBoard tempBoard = bitboard;
     if (tempBoard.makeMove(move.first, move.second, isBlack)) {
-      double score = -negamax(tempBoard, depth - 1, -beta, -alpha, !isBlack,
+      int nextDepth = depth - 1;
+      if (depth >= 3 && moveIndex >= 3 && !isCorner(move.first, move.second)) {
+        nextDepth -= 1;
+      }
+      if (nextDepth < 0)
+        nextDepth = 0;
+
+      double score = -negamax(tempBoard, nextDepth, -beta, -alpha, !isBlack,
                               startTime, timeLimit, timeUp);
 
       if (score > bestScore) {
@@ -304,12 +295,11 @@ double PandaAIAgent::negamax(BitBoard &bitboard, int depth, double alpha,
 
       alpha = std::max(alpha, score);
       if (alpha >= beta) {
-        // Beta cutoff
         entryType = EntryType::LOWER_BOUND;
-        // history heuristic disabled for now
         break;
       }
     }
+    moveIndex++;
   }
 
   if (bestScore > alpha) {
@@ -326,7 +316,7 @@ double PandaAIAgent::exactEndgameSearch(
     std::chrono::milliseconds timeLimit, bool &timeUp) {
   nodesSearched++;
 
-  if (nodesSearched % 500 == 0 && isTimeUp(startTime, timeLimit)) {
+  if (nodesSearched % 128 == 0 && isTimeUp(startTime, timeLimit)) {
     timeUp = true;
     return 0.0;
   }
@@ -336,11 +326,10 @@ double PandaAIAgent::exactEndgameSearch(
     int opponentScore = bitboard.getScore(!isBlack);
     double finalScore = static_cast<double>(playerScore - opponentScore);
 
-    // Add win/loss bonus for exact search
     if (finalScore > 0) {
-      finalScore += 100.0; // Win bonus
+      finalScore += 100.0;
     } else if (finalScore < 0) {
-      finalScore -= 100.0; // Loss penalty
+      finalScore -= 100.0;
     }
 
     return finalScore;
@@ -349,7 +338,6 @@ double PandaAIAgent::exactEndgameSearch(
   auto validMoves = bitboard.getValidMoves(isBlack);
   if (validMoves.empty()) {
     if (!bitboard.hasValidMoves(!isBlack)) {
-      // Game over
       int playerScore = bitboard.getScore(isBlack);
       int opponentScore = bitboard.getScore(!isBlack);
       double finalScore = static_cast<double>(playerScore - opponentScore);
@@ -363,7 +351,6 @@ double PandaAIAgent::exactEndgameSearch(
       return finalScore;
     }
 
-    // Pass turn
     return -exactEndgameSearch(bitboard, !isBlack, emptySquares, startTime,
                                timeLimit, timeUp);
   }
@@ -387,26 +374,22 @@ double PandaAIAgent::exactEndgameSearch(
 
 inline double PandaAIAgent::evaluatePosition(const BitBoard &bitboard,
                                              bool isBlack) const {
-  // EXACT COPY of bitboard agent's evaluation - rely on search advantage
   double score = 0.0;
 
   uint64_t playerBoard = bitboard.getPlayerBoard(isBlack);
   uint64_t opponentBoard = bitboard.getPlayerBoard(!isBlack);
   int totalDiscs = bitboard.getTotalDiscs();
 
-  // Corner control - EXACT 25x weight (same as bitboard)
   uint64_t corners = bitboard.getCornerMask();
   int playerCorners = __builtin_popcountll(playerBoard & corners);
   int opponentCorners = __builtin_popcountll(opponentBoard & corners);
   score += (playerCorners - opponentCorners) * 25.0;
 
-  // Edge control - EXACT 5x weight (same as bitboard)
   uint64_t edges = bitboard.getEdgeMask();
   int playerEdges = __builtin_popcountll(playerBoard & edges);
   int opponentEdges = __builtin_popcountll(opponentBoard & edges);
   score += (playerEdges - opponentEdges) * 5.0;
 
-  // Mobility - EXACT 15x weight (same as bitboard)
   int playerMoves = bitboard.getValidMoves(isBlack).size();
   int opponentMoves = bitboard.getValidMoves(!isBlack).size();
   if (playerMoves + opponentMoves > 0) {
@@ -415,12 +398,10 @@ inline double PandaAIAgent::evaluatePosition(const BitBoard &bitboard,
              15.0;
   }
 
-  // Disc count - EXACT 5x weight (same as bitboard)
   int playerDiscs = bitboard.getScore(isBlack);
   int opponentDiscs = bitboard.getScore(!isBlack);
   score += ((double)(playerDiscs - opponentDiscs) / totalDiscs) * 5.0;
 
-  // Stability - EXACT 10x weight (same as bitboard)
   uint64_t stableMask = bitboard.getStableMask();
   uint64_t playerStable = playerBoard & stableMask;
   uint64_t opponentStable = opponentBoard & stableMask;
@@ -428,7 +409,6 @@ inline double PandaAIAgent::evaluatePosition(const BitBoard &bitboard,
   int opponentStableCount = __builtin_popcountll(opponentStable);
   score += (playerStableCount - opponentStableCount) * 10.0;
 
-  // EXACT positional evaluation (same as bitboard)
   const auto &table = (totalDiscs < 20)   ? OPENING_VALUES
                       : (totalDiscs > 50) ? ENDGAME_VALUES
                                           : POSITION_VALUES;
@@ -450,14 +430,13 @@ PandaAIAgent::EvaluationWeights
 PandaAIAgent::getWeights(GamePhase phase) const {
   switch (phase) {
   case GamePhase::OPENING:
-    return {20.0, 100.0, 10.0,
-            15.0, 1.0,   8.0}; // Prioritize corners, avoid edges
+    return {20.0, 100.0, 10.0, 15.0, 1.0, 8.0};
   case GamePhase::MIDGAME:
-    return {15.0, 80.0, 20.0, 25.0, 5.0, 10.0}; // Balanced approach
+    return {15.0, 80.0, 20.0, 25.0, 5.0, 10.0};
   case GamePhase::ENDGAME:
-    return {10.0, 50.0, 15.0, 20.0, 30.0, 5.0}; // Focus on disc count
+    return {10.0, 50.0, 15.0, 20.0, 30.0, 5.0};
   }
-  return {15.0, 80.0, 20.0, 25.0, 5.0, 10.0}; // Default midgame weights
+  return {15.0, 80.0, 20.0, 25.0, 5.0, 10.0};
 }
 
 double PandaAIAgent::evaluateMobility(const BitBoard &bitboard,
@@ -498,25 +477,22 @@ double PandaAIAgent::evaluateEdgeControl(const BitBoard &bitboard,
 
 double PandaAIAgent::evaluateStability(const BitBoard &bitboard,
                                        bool isBlack) const {
-  // Fast stability approximation using corner and edge control
   double stability = 0.0;
 
   uint64_t playerBoard = bitboard.getPlayerBoard(isBlack);
   uint64_t corners = bitboard.getCornerMask();
 
-  // Corner discs are always stable
   stability += __builtin_popcountll(playerBoard & corners) * 10.0;
 
-  // Edge discs adjacent to corners are more stable
   uint64_t stableEdges = 0;
   if (playerBoard & (1ULL << 0))
-    stableEdges |= (1ULL << 1) | (1ULL << 8); // Top-left corner
+    stableEdges |= (1ULL << 1) | (1ULL << 8);
   if (playerBoard & (1ULL << 7))
-    stableEdges |= (1ULL << 6) | (1ULL << 15); // Top-right corner
+    stableEdges |= (1ULL << 6) | (1ULL << 15);
   if (playerBoard & (1ULL << 56))
-    stableEdges |= (1ULL << 48) | (1ULL << 57); // Bottom-left corner
+    stableEdges |= (1ULL << 48) | (1ULL << 57);
   if (playerBoard & (1ULL << 63))
-    stableEdges |= (1ULL << 55) | (1ULL << 62); // Bottom-right corner
+    stableEdges |= (1ULL << 55) | (1ULL << 62);
 
   stability += __builtin_popcountll(playerBoard & stableEdges) * 3.0;
 
@@ -597,14 +573,30 @@ void PandaAIAgent::storeTTEntry(uint64_t hash, double score, int depth,
                                 EntryType type,
                                 std::pair<int, int> bestMove) const {
   size_t index = hash % TT_SIZE;
-  TTEntry &entry = transpositionTable[index];
+  TTEntry &e = transpositionTable[index];
 
-  // Always replace strategy (could be improved with depth preference)
-  entry.hash = hash;
-  entry.score = score;
-  entry.depth = depth;
-  entry.type = type;
-  entry.bestMove = bestMove;
+  bool replace = false;
+
+  if (e.hash == 0) {
+    replace = true;
+  } else if (e.hash == hash) {
+    if (depth >= e.depth || type == EntryType::EXACT ||
+        e.type != EntryType::EXACT) {
+      replace = true;
+    }
+  } else {
+    if (depth > e.depth) {
+      replace = true;
+    }
+  }
+
+  if (replace) {
+    e.hash = hash;
+    e.score = score;
+    e.depth = depth;
+    e.type = type;
+    e.bestMove = bestMove;
+  }
 }
 
 std::vector<std::pair<int, int>>
@@ -618,25 +610,19 @@ PandaAIAgent::orderMoves(const BitBoard &bitboard,
   for (const auto &move : moves) {
     double score = 0.0;
 
-    // Transposition table move gets highest priority
     if (move == ttMove) {
       score += 10000.0;
     }
 
-    // History heuristic bonus
     int hidx = move.first * 8 + move.second;
     if (hidx >= 0 && hidx < 64) {
-      // disabled (tuning): history influence
-      // score += static_cast<double>(historyTable[hidx]) * 0.0;
+      // history disabled in snapshot
     }
 
-    // Corner moves - EXACT same as bitboard (1000)
     if (isCorner(move.first, move.second)) {
       score += 1000.0;
     }
 
-    // Avoid moves adjacent to empty corners (unless corner is already
-    // controlled)
     bool adjacentToEmptyCorner = false;
     for (int dr = -1; dr <= 1; ++dr) {
       for (int dc = -1; dc <= 1; ++dc) {
@@ -651,22 +637,17 @@ PandaAIAgent::orderMoves(const BitBoard &bitboard,
     }
 
     if (adjacentToEmptyCorner) {
-      score -= 500.0; // EXACT same as bitboard
+      score -= 500.0;
     }
 
-    // Phase-aware fast move evaluation
     int row = move.first, col = move.second;
     int totalDiscs = bitboard.getTotalDiscs();
     bool opening = (totalDiscs <= 20);
-    bool endgame = (totalDiscs > 50);
 
-    // Edge moves: de-emphasize in opening to avoid giving minmax easy edges
     if (row == 0 || row == 7 || col == 0 || col == 7) {
       score += opening ? 20.0 : 100.0;
     }
 
-    // Flip count bonus: much smaller in opening to favor quiet,
-    // mobility-preserving moves
     BitBoard temp = bitboard;
     int beforeScore = bitboard.getScore(isBlack);
     if (temp.makeMove(row, col, isBlack)) {
@@ -676,8 +657,6 @@ PandaAIAgent::orderMoves(const BitBoard &bitboard,
       score += flips * flipWeight;
     }
 
-    // Mobility swing: favor moves that reduce opponent mobility, especially in
-    // opening
     BitBoard tmp2 = bitboard;
     if (tmp2.makeMove(row, col, isBlack)) {
       int myMob = tmp2.getValidMoves(isBlack).size();
@@ -689,7 +668,6 @@ PandaAIAgent::orderMoves(const BitBoard &bitboard,
     scoredMoves.emplace_back(move, score);
   }
 
-  // Sort moves by score (highest first)
   std::sort(scoredMoves.begin(), scoredMoves.end(),
             [](const auto &a, const auto &b) { return a.second > b.second; });
 
@@ -707,7 +685,6 @@ double PandaAIAgent::scoreMoveForOrdering(const BitBoard &bitboard,
                                           bool isBlack) const {
   double score = 0.0;
 
-  // Simulate the move to evaluate its impact
   BitBoard tempBoard = bitboard;
   int beforeScore = tempBoard.getScore(isBlack);
 
@@ -717,17 +694,14 @@ double PandaAIAgent::scoreMoveForOrdering(const BitBoard &bitboard,
     int afterScore = tempBoard.getScore(isBlack);
     int flippedDiscs = afterScore - beforeScore - 1;
 
-    // Phase-aware flip weighting
     double flipW = (phase == GamePhase::OPENING) ? 2.0 : 10.0;
     score += flippedDiscs * flipW;
 
-    // Mobility impact (stronger in opening against shallow evaluators)
     int playerMobility = tempBoard.getValidMoves(isBlack).size();
     int opponentMobility = tempBoard.getValidMoves(!isBlack).size();
     double mobW = (phase == GamePhase::OPENING) ? 8.0 : 5.0;
     score += (playerMobility - opponentMobility) * mobW;
 
-    // Edge control bonus only outside opening
     if (phase != GamePhase::OPENING && isEdge(move.first, move.second)) {
       score += 20.0;
     }
@@ -736,76 +710,35 @@ double PandaAIAgent::scoreMoveForOrdering(const BitBoard &bitboard,
   return score;
 }
 
-bool PandaAIAgent::isOpeningPosition(const BitBoard &bitboard) const {
-  return bitboard.getTotalDiscs() <= 16; // Extended opening coverage
-}
-
 std::pair<int, int> PandaAIAgent::getOpeningMove(const BitBoard &bitboard,
                                                  bool isBlack) const {
   auto validMoves = bitboard.getValidMoves(isBlack);
-  int totalDiscs = bitboard.getTotalDiscs();
+  if (validMoves.empty())
+    return {-1, -1};
 
-  // Opening book based on tournament theory
-  if (totalDiscs == 4) {
-    // First move - diagonal moves are strongest
-    static const std::vector<std::pair<int, int>> firstMoves = {
-        {2, 3}, {3, 2}, {4, 5}, {5, 4} // Diagonal moves
-    };
-    for (const auto &move : firstMoves) {
-      if (std::find(validMoves.begin(), validMoves.end(), move) !=
-          validMoves.end()) {
-        return move;
-      }
-    }
-  } else if (totalDiscs <= 8) {
-    // Early opening - prioritize center control
-    static const std::vector<std::pair<int, int>> earlyMoves = {
-        {2, 2}, {2, 5}, {5, 2}, {5, 5}, // Inner squares (highest priority)
-        {2, 3}, {3, 2}, {4, 5}, {5, 4}, // Diagonal continuation
-        {2, 4}, {3, 5}, {4, 2}, {5, 3}  // Parallel moves
-    };
+  if (!isOpeningPosition(bitboard))
+    return {-1, -1};
 
-    return selectBestOpeningMove(bitboard, validMoves, earlyMoves, isBlack);
-  } else if (totalDiscs <= 12) {
-    // Mid-opening - balance development and safety
-    static const std::vector<std::pair<int, int>> midMoves = {
-        {1, 1}, {1, 6}, {6, 1}, {6, 6}, // Safe inner positions
-        {2, 2}, {2, 5}, {5, 2}, {5, 5}, // Inner squares
-        {3, 1}, {1, 3}, {4, 6}, {6, 4}  // Safe edge extensions
-    };
-
-    return selectBestOpeningMove(bitboard, validMoves, midMoves, isBlack);
-  } else if (totalDiscs <= 16) {
-    // Late opening - prepare for midgame transition
-    return selectStrategicOpeningMove(bitboard, validMoves, isBlack);
-  }
-
-  return {-1, -1}; // No opening book move found
+  return selectStrategicOpeningMove(bitboard, validMoves, isBlack);
 }
 
-std::pair<int, int> PandaAIAgent::selectBestOpeningMove(
-    const BitBoard &bitboard,
-    const std::vector<std::pair<int, int>> &validMoves,
-    const std::vector<std::pair<int, int>> &bookMoves, bool isBlack) const {
+bool PandaAIAgent::isOpeningPosition(const BitBoard &bitboard) const {
+  return bitboard.getTotalDiscs() <= 20;
+}
 
-  std::vector<std::pair<std::pair<int, int>, double>> scoredMoves;
+std::pair<int, int> PandaAIAgent::selectStrategicOpeningMove(
+    const BitBoard &bitboard,
+    const std::vector<std::pair<int, int>> &validMoves, bool isBlack) const {
+
+  std::pair<int, int> bestMove = validMoves[0];
+  double bestScore = -std::numeric_limits<double>::infinity();
 
   for (const auto &move : validMoves) {
     double score = 0.0;
 
-    // Prioritize moves in opening book
-    auto it = std::find(bookMoves.begin(), bookMoves.end(), move);
-    if (it != bookMoves.end()) {
-      score += 200.0 -
-               static_cast<double>(std::distance(bookMoves.begin(), it)) * 10.0;
-    }
+    if (isCorner(move.first, move.second))
+      score += 1000.0;
 
-    // Heavily penalize edge moves in opening
-    if (isEdge(move.first, move.second)) {
-      score -= 150.0;
-    }
-
-    // Severely penalize moves adjacent to empty corners
     bool adjacentToEmptyCorner = false;
     for (int dr = -1; dr <= 1; ++dr) {
       for (int dc = -1; dc <= 1; ++dc) {
@@ -818,62 +751,26 @@ std::pair<int, int> PandaAIAgent::selectBestOpeningMove(
       if (adjacentToEmptyCorner)
         break;
     }
+    if (adjacentToEmptyCorner)
+      score -= 500.0;
 
-    if (adjacentToEmptyCorner) {
-      score -= 300.0;
+    BitBoard temp = bitboard;
+    if (temp.makeMove(move.first, move.second, isBlack)) {
+      int myMob = temp.getValidMoves(isBlack).size();
+      int oppMob = temp.getValidMoves(!isBlack).size();
+      score += (myMob - oppMob) * 10.0;
+
+      int flips = temp.getScore(isBlack) - bitboard.getScore(isBlack) - 1;
+      score += flips * 2.0;
     }
 
-    // Evaluate position after move
-    BitBoard tempBoard = bitboard;
-    if (tempBoard.makeMove(move.first, move.second, isBlack)) {
-      // Mobility differential
-      int playerMoves = tempBoard.getValidMoves(isBlack).size();
-      int opponentMoves = tempBoard.getValidMoves(!isBlack).size();
-      score += (playerMoves - opponentMoves) * 20.0;
-
-      // Prefer central positions
-      double centerDistance =
-          std::abs(move.first - 3.5) + std::abs(move.second - 3.5);
-      score += (7.0 - centerDistance) * 5.0;
+    if (score > bestScore) {
+      bestScore = score;
+      bestMove = move;
     }
-
-    scoredMoves.emplace_back(move, score);
   }
 
-  if (!scoredMoves.empty()) {
-    std::sort(scoredMoves.begin(), scoredMoves.end(),
-              [](const auto &a, const auto &b) { return a.second > b.second; });
-    return scoredMoves[0].first;
-  }
-
-  return {-1, -1};
+  return bestMove;
 }
 
-std::pair<int, int> PandaAIAgent::selectStrategicOpeningMove(
-    const BitBoard &bitboard,
-    const std::vector<std::pair<int, int>> &validMoves, bool isBlack) const {
-
-  // Use simplified evaluation for late opening moves
-  std::vector<std::pair<std::pair<int, int>, double>> scoredMoves;
-
-  for (const auto &move : validMoves) {
-    double score = scoreMoveForOrdering(bitboard, move, isBlack);
-
-    // Corner moves are always good
-    if (isCorner(move.first, move.second)) {
-      score += 500.0;
-    }
-
-    scoredMoves.emplace_back(move, score);
-  }
-
-  if (!scoredMoves.empty()) {
-    std::sort(scoredMoves.begin(), scoredMoves.end(),
-              [](const auto &a, const auto &b) { return a.second > b.second; });
-    return scoredMoves[0].first;
-  }
-
-  return {-1, -1};
-}
-
-REGISTER_AI_AGENT(PandaAIAgent, "panda")
+REGISTER_AI_AGENT(PandaAIAgent, "panda");
