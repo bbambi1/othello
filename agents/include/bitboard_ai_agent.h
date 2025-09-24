@@ -57,7 +57,7 @@ private:
         : hash(h), score(s), depth(d), type(t) {}
   };
   static constexpr size_t TT_WAYS = 4;
-  static constexpr size_t TT_NUM_BUCKETS = 1 << 20; // ~1M buckets
+  static constexpr size_t TT_NUM_BUCKETS = 1 << 20;
   struct TTBucket {
     TranspositionEntry entries[TT_WAYS];
   };

@@ -62,7 +62,6 @@ BitBoardAIAgent::getBestMove(const Board &board, CellState player,
     if (isTimeUp(startTime, timeLimit))
       break;
 
-    // If we have a principal variation move from previous depth, try it first
     if (!moves.empty() && !(moves.front() == lastCompletedBestMove)) {
       auto it = std::find(moves.begin(), moves.end(), lastCompletedBestMove);
       if (it != moves.end()) {
@@ -89,7 +88,6 @@ BitBoardAIAgent::getBestMove(const Board &board, CellState player,
       }
     }
 
-    // Only update results if we completed at least one move at this depth
     if (iterationBestScore != std::numeric_limits<double>::lowest()) {
       bestMove = iterationBestMove;
       bestScore = iterationBestScore;

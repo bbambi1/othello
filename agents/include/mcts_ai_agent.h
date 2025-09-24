@@ -179,7 +179,7 @@ private:
 class MCTSAiAgent : public AIAgentBase {
 public:
   MCTSAiAgent(const std::string &name = "MCTS",
-              const std::string &author = "System");
+              const std::string &author = "Ulysse");
   std::pair<int, int> getBestMove(const Board &board, CellState player,
                                   std::chrono::milliseconds timeLimit =
                                       std::chrono::milliseconds(1000)) override;
